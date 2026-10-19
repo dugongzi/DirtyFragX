@@ -14,7 +14,8 @@ public class MainPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        return position == 0 ? new HomeFragment() : new SettingsFragment();
+        if (position == 0) return new HomeFragment();
+        return new SettingsFragment();
     }
     
     @Override

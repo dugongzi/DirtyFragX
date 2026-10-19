@@ -7,6 +7,8 @@
     <string name="language">语言</string>
     <string name="console_name">DIRTYFRAGX</string>
     <string name="home">首页</string>
+    <string name="back">返回</string>
+    <string name="run_title">运行</string>
     <string name="prerequisites">运行前置条件</string>
     <string name="current_status">当前状态</string>
     <string name="prerequisite_hint">运行前需要选择 SU 管理器。开始前请确认设备与管理器状态。</string>

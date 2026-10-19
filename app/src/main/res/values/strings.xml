@@ -7,6 +7,8 @@
     <string name="language">Language</string>
     <string name="console_name">DITRYFRAGX</string>
     <string name="home">Home</string>
+    <string name="back">Back</string>
+    <string name="run_title">Run</string>
     <string name="prerequisites">Prerequisites</string>
     <string name="current_status">Current status</string>
     <string name="prerequisite_hint">An SU manager is required. Check your device and manager before running.</string>
