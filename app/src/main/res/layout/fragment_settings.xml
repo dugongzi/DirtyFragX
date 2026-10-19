@@ -471,6 +471,54 @@
                     android:paddingBottom="4dp">
 
                     <LinearLayout
+                        android:id="@+id/rowUpdateCheck"
+                        style="@style/SettingsRow"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_update" />
+
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                style="@style/RowTitle"
+                                android:text="@string/update_check" />
+
+                            <TextView
+                                android:id="@+id/updateCheckVersion"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/text_tertiary"
+                                android:textSize="12sp" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="20sp" />
+
+                    </LinearLayout>
+
+                    <View
+                        style="@style/SectionDivider"
+                        android:layout_marginStart="48dp"
+                        android:layout_marginTop="0dp"
+                        android:layout_marginBottom="0dp" />
+
+                    <LinearLayout
                         android:id="@+id/rowFork"
                         style="@style/SettingsRow"
                         android:background="?attr/selectableItemBackground"

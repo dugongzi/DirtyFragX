@@ -240,13 +240,6 @@
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp">
 
-                        <ImageView
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_device" />
-
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -281,13 +274,6 @@
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp">
 
-                        <ImageView
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_android" />
-
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -321,13 +307,6 @@
                         android:orientation="horizontal"
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp">
-
-                        <ImageView
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_memory" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -364,13 +343,6 @@
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp">
 
-                        <ImageView
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_board" />
-
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -404,13 +376,6 @@
                         android:orientation="horizontal"
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp">
-
-                        <ImageView
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
-                            android:layout_marginEnd="14dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_fingerprint" />
 
                         <LinearLayout
                             android:layout_width="0dp"

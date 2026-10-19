@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private android.graphics.drawable.Drawable suManagerIcon;
     /** A failed run locks the Run button until reboot (page-cache patch). */
     private boolean failedRun;
+    private UpdateChecker updateChecker;
 
     /** Called by HomeFragment once its layout exists. */
     @SuppressWarnings("unchecked")
@@ -152,7 +153,20 @@ public class MainActivity extends AppCompatActivity {
         // NOTE: no app bar - the home page carries its own headline, so there is
         // no toolbar title, update pill or header controls to keep in sync.
 
-        // Update check: removed update pill UI
+        // Startup update check. Gitee and GitHub are queried side by side and
+        // the faster answer wins, so mainland users hit Gitee and everyone else
+        // hits GitHub without an unreliable IP/region lookup. A hit downloads
+        // the APK in-app and hands it to the system installer.
+        updateChecker = new UpdateChecker(this);
+        // Theme, accent and language switches call recreate(), which re-runs
+        // onCreate. Those are not launches, so only the first create of this
+        // activity (savedInstanceState == null) starts the network checks.
+        if (savedInstanceState == null) {
+            updateChecker.checkOnStart();
+            // The announcement is fetched from every mirror on each launch and
+            // has to be acknowledged with its button before it goes away.
+            updateChecker.checkAnnouncement();
+        }
 
         // SU Manager card: upstream 3.2 deleted the bundled assets/ksud, so the
         // exploit stages libksud.so out of the chosen manager's
@@ -425,6 +439,18 @@ public class MainActivity extends AppCompatActivity {
         for (View link : fork) {
             if (link != null) link.setOnClickListener(v ->
                     openUrl(getString(R.string.repo_fork_url)));
+        }
+
+        TextView updateVersion = settings(R.id.updateCheckVersion);
+        if (updateVersion != null) {
+            updateVersion.setText(getString(R.string.update_current_version,
+                    BuildConfig.VERSION_NAME));
+        }
+        View updateCheck = settings(R.id.rowUpdateCheck);
+        if (updateCheck != null) {
+            updateCheck.setOnClickListener(v -> {
+                if (updateChecker != null) updateChecker.checkManually();
+            });
         }
     }
 
@@ -1044,6 +1070,12 @@ public class MainActivity extends AppCompatActivity {
             View v = settings(id);
             if (v != null) v.setEnabled(enabled);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (updateChecker != null) updateChecker.cancel();
+        super.onDestroy();
     }
 
     @Override
