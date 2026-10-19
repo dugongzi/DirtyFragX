@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_bg">#FF0E1012</color>
+    <color name="surface_0">#FF121212</color>
+    <color name="surface_1">#FF1E1E1E</color>
+    <color name="surface_2">#FF2C2C2C</color>
+    <color name="surface_3">#FF2C2C2C</color>
+    <color name="surface_4">#FF383838</color>
+    <color name="settings_card">#FF1E1E1E</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="text_tertiary">#FF9E9E9E</color>
+    <color name="accent_cyan">#FF98D2D5</color>
+    <color name="accent_ink">#FFB7E3E5</color>
+    <!-- Dark teal in both themes: the status card always uses white content. -->
+    <color name="status_running">#FF2F6F73</color>
+    <color name="accent_emerald">#FF10B981</color>
+    <color name="accent_amber">#FFF59E0B</color>
+    <color name="accent_blue">#FF2563EB</color>
+    <color name="muted_cyan">#FF1B3336</color>
+    <color name="muted_emerald">#FFD1FAE5</color>
+    <color name="muted_amber">#FFFEF3C7</color>
+    <color name="muted_blue">#FFDBEAFE</color>
+    <color name="line_subtle">#FF2C2C2C</color>
+    <color name="log_text">@color/text_secondary</color>
+    <color name="nav_item_tint">#99E1E3E3</color>
+</resources>

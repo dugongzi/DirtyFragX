@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home_outlined"
+        android:title="@string/home" />
+    <!-- Centre slot: the round run button floats over it. Transparent icon so
+         the two real tabs split the bar evenly on either side. -->
+    <item
+        android:id="@+id/nav_run_placeholder"
+        android:icon="@drawable/ic_placeholder"
+        android:title="" />
+    <item
+        android:id="@+id/nav_settings"
+        android:icon="@drawable/ic_settings_outlined"
+        android:title="@string/settings" />
+</menu>

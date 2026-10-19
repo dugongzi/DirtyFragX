@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rounded rect with radius = half the 54dp button height, so the SAME
-     drawable reads as a circle while the button is 54dp wide and as a
-     stadium pill once MainActivity animates the width up. The solid colour
-     is only a placeholder: the SU-manager launcher tints this in code
-     (#1F1F1F unlit, #B0B0B0 -> #9A9A9E lit). -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <corners android:radius="27dp" />
-    <solid android:color="#FF1C1C1C" />
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="16dp" />
+    <solid android:color="@color/surface_2" />
 </shape>

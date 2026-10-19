@@ -9,6 +9,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -25,6 +26,7 @@ import android.widget.TextView;
 import androidx.core.graphics.ColorUtils;
 import androidx.appcompat.app.AppCompatActivity;
 
+import df.root.BuildConfig;
 import df.root.databinding.ActivityMainBinding;
 
 import java.io.File;
@@ -39,32 +41,26 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
     private static final String TAG = "dfroot";
 
-    /** Stage indices of binding.twoStep - see initStepper(). */
-    private static final int STAGE_VERIFIED = 5;
-
     private ActivityMainBinding binding;
     /** The two pages live in their own layouts now, so their controls are reached
      *  through the fragment view that currently holds them. Null until that page
      *  has been created by the pager. */
     private View homeView;
     private View settingsView;
+    /** Progress popup grown out of the round run button, null when closed. */
+    private android.widget.PopupWindow runPanel;
+    /** The popup's content view: log + SYSTEM live in there, not on the page. */
+    private View runPanelView;
     private final Handler mMain = new Handler(Looper.getMainLooper());
     private final Executor mExec = Executors.newSingleThreadExecutor();
     private final StringBuilder logBuffer = new StringBuilder();
     private File lastLogFile;
     private boolean running;
-    private boolean runArmed;
     private boolean advancedLog;
     private boolean expertMode;
-    private String exploitPhase = "";
-    private int cleanupSteps;
-    private float seg1;
     private int selectedNav = R.id.nav_home;
     private boolean moduleRefresh;
     private boolean mBootReceiverEnabled;
-    /** Stage chain state restored from the previous run, applied when the home
-     *  view appears: STAGE_VERIFIED for a finished run, -1 for none. */
-    private int mRestoredStage = -1;
     private boolean mLastFailed;
 
     /** Device-protected storage context: bootstrap.c reads its prefs from
@@ -74,18 +70,19 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     /** Package name of the SU manager whose libksud.so gets staged, or null. */
     private String suManagerPkg;
     private CharSequence suManagerLabel;
+    private android.graphics.drawable.Drawable suManagerIcon;
     /** A failed run locks the Run button until reboot (page-cache patch). */
     private boolean failedRun;
     /** Raw "***FAILED***: ..." text from the exploit, used for the failure log. */
     private String lastFailReason;
 
-    private static final long LOG_FADE_MS = 180L;
     private boolean logAllowed;
 
     /** Called by HomeFragment once its layout exists. */
     @SuppressWarnings("unchecked")
     <T extends View> T home(int id) {
-        return homeView == null ? null : (T) homeView.findViewById(id);
+        View v = homeView == null ? null : homeView.findViewById(id);
+        return v == null ? null : (T) v;
     }
 
     /** Called by SettingsFragment once its layout exists. */
@@ -94,9 +91,19 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         return settingsView == null ? null : (T) settingsView.findViewById(id);
     }
 
+    /** Views of the run popup; null while it is closed. */
+    @SuppressWarnings("unchecked")
+    <T extends View> T panel(int id) {
+        View v = runPanelView == null ? null : runPanelView.findViewById(id);
+        return v == null ? null : (T) v;
+    }
+
     /** HomeFragment's layout is live: bind what belongs to the home page. */
     void onHomeViewReady(View v) {
         homeView = v;
+        // onCreate ran loadSuManagerPref() before this view existed, so its
+        // label/icon writes went nowhere. Re-run it now that the card is there.
+        loadSuManagerPref();
         initHomeControls();
         applyRestoredHomeState();
     }
@@ -111,10 +118,6 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     public void report(String msg) {
         Log.i(TAG, msg.trim());
         mMain.post(() -> {
-            // Drive the two-step progress bar from the raw (unfiltered) lines.
-            for (String line : msg.split("\n", -1)) {
-                driveProgress(line.trim());
-            }
             for (String line : msg.split("\n", -1)) {
                 String t = line.trim();
                 // Skip empty lines to keep the log compact.
@@ -125,6 +128,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 if (t.matches("\\d+\\s*(\\u2026|\\.{3})?")) {
                     continue;
                 }
+                // Capture the failure reason from the raw line before it is filtered.
+                captureFailure(t);
                 // Drop internal patch/hook details and raw result markers: the
                 // app renders its own SETUP/EXPLOIT/INIT/CLEANUP headers and
                 // synthesizes a single failure line instead of the raw one.
@@ -137,151 +142,56 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 t = stripHeader(t);
                 appendLog(t);
             }
-            android.widget.ScrollView scroll = home(R.id.outputScroll);
+            updateSystemCheck();
+            android.widget.ScrollView scroll = panel(R.id.outputScroll);
             if (scroll != null) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
         });
     }
 
+    /** Re-evaluates the SYSTEM card: it turns green only once the current run
+     *  has reported the device banner the ExploitRunner prints as its first
+     *  block. */
+    private void updateSystemCheck() {
+        boolean verified = logBuffer.indexOf(SYSTEM_BANNER) >= 0;
+        android.widget.ImageView icon = panel(R.id.systemCheckIcon);
+        if (icon == null) return;
+        icon.setImageResource(verified ? R.drawable.ic_check : R.drawable.ic_error);
+        icon.setImageTintList(android.content.res.ColorStateList.valueOf(
+                getColor(verified ? R.color.success : R.color.error)));
+        TextView label = panel(R.id.systemCheckLabel);
+        if (label != null) {
+            label.setText(verified ? R.string.activated : R.string.not_activated);
+            label.setTextColor(getColor(verified ? R.color.success : R.color.text_secondary));
+        }
+    }
+
     private void appendLog(String line) {
-        TextView out = home(R.id.outputView);
+        TextView out = panel(R.id.outputView);
+        logBuffer.append(line).append('\n');
+        saveLog();
         if (out == null) return;
         out.append(styleLogLine(line));
         out.append("\n");
-        logBuffer.append(line).append('\n');
-        saveLog();
     }
 
-    /** Translates raw native log lines into two-step progress-bar states.
-     *  STRICTLY LINEAR: seg 1 (the exploit run) climbs to 100% and only then does seg 2
-     *  (verification) start climbing. The two bars never move at the same time.
-     *  Seg 1 tracks setup + file patching + the hook firing; seg 2 tracks the bootstrap,
-     *  which reports progress by touching /dev/dfm* nodes that exp.c polls for 70 seconds. */
-    private void driveProgress(String t) {
+    /** v4.0 marker table reports failures as "<stage>: ERROR - <reason>"; keep
+     *  that reason for the single failure line the UI synthesizes. */
+    private void captureFailure(String t) {
         if (t.isEmpty()) return;
-        // v4.0 marker table: a failure is reported as "<stage>: ERROR - <reason>".
         int err = t.indexOf("ERROR - ");
         if (err >= 0) {
-            lastFailReason = t.substring(err + "ERROR - ".length()).trim();
+            lastFailReason = t.substring(0, err).trim().toLowerCase()
+                    + " failed: " + t.substring(err + "ERROR - ".length()).trim();
         }
-        switch (t) {
-            case "=== setup ===":
-                exploitPhase = "setup";
-                setSeg1(0.05f);
-                break;
-            case "=== exploit (patching files) ===":
-                exploitPhase = "exploit";
-                setSeg1(0.15f);
-                break;
-            case "=== init  ===":
-                // The run bar is nearly done; the verification bar stays EMPTY until the
-                // module is actually in and the exploit bar has read 100%.
-                exploitPhase = "init";
-                setSeg1(0.98f);
-                break;
-            case "=== cleanup ===":
-                exploitPhase = "cleanup";
-                cleanupSteps = 0;
-                break;
-            default:
-                break;
-        }
-        if (exploitPhase.equals("setup") && t.startsWith("found ko_target:")) {
-            setSeg1(0.10f);
-        }
-        if (exploitPhase.equals("exploit")) {
-            if (t.startsWith("patch: crash_dump64")) {
-                setSeg1(0.30f);
-            } else if (t.contains("<- dfroot.ko")) {
-                setSeg1(0.50f);
-            } else if (t.startsWith("Finding symbol offsets")) {
-                setSeg1(0.60f);
-            } else if (t.contains("<- shellcode")) {
-                setSeg1(0.75f);
-            } else if (t.contains("<- trampoline")) {
-                setSeg1(0.90f);
-            } else if (t.startsWith("Triggering hook")) {
-                setSeg1(0.95f);
-            }
-        }
-        // Run bar finishes here - the module is in, nothing left to patch.
-        if (t.startsWith("libc++: loading custom module")) {
-            setSeg1(1f);
-        }
-        // Verification bar: one step per bootstrap marker (see exp.c markers[]).
-        // v4.0 renamed every marker and dropped the "env adopted" / "partitions set
-        // ro" confirmations, so these steps are re-keyed to the new table.
-        if (t.startsWith("kernel module: launching bootstrap")) {
-            setSeg2(0.14f, R.string.verification);
-        }
-        if (t.startsWith("bootstrap: loading app preferences file")) {
-            setSeg2(0.28f, R.string.verification);
-        }
-        if (t.startsWith("bootstrap: cloning zygote env")
-                || t.startsWith("bootstrap: WARNING - clone zygote env failed")) {
-            setSeg2(0.42f, R.string.verification);
-        }
-        if (t.startsWith("bootstrap: setting partitions ro")
-                || t.startsWith("bootstrap: WARNING - set partitions ro failed")) {
-            setSeg2(0.57f, R.string.verification);
-        }
-        if (t.startsWith("bootstrap: disabling ksu modules")) {
-            setSeg2(0.71f, R.string.verification);
-        }
-        if (t.startsWith("bootstrap: starting SU daemon")) {
-            setSeg2(0.85f, R.string.verification);
-        }
-        if (t.equals("ksud start: SUCCESS")) {
-            setSeg1(1f);
-            setSeg2(1f, R.string.verified);
-        }
-        if (exploitPhase.equals("cleanup") && t.startsWith("restoring")) {
-            cleanupSteps++;
-        }
-    }
-
-    private void initStepper() {
-        StageStepperView stepper = home(R.id.twoStep);
-        if (stepper == null) return;
-        stepper.setStages(
-                getString(R.string.stage_setup),
-                getString(R.string.stage_patch),
-                getString(R.string.stage_init),
-                getString(R.string.stage_bootstrap),
-                getString(R.string.stage_daemon),
-                getString(R.string.stage_verified));
-    }
-
-    private void setSeg1(float p) {
-        seg1 = p;
-        // The home view appears after the pager inflates the page; the restored
-        // stage is replayed in applyRestoredHomeState.
-        mRestoredStage = p <= 0f ? -1 : p < 0.10f ? 0 : p < 0.95f ? 1 : 2;
-        StageStepperView stepper = home(R.id.twoStep);
-        if (mRestoredStage < 0 || stepper == null) return;
-        stepper.setStage(mRestoredStage);
-    }
-
-    private void setSeg2(float p, int label) {
-        if (p >= 1f) {
-            mRestoredStage = STAGE_VERIFIED;
-        } else {
-            // Six bootstrap markers (0.14 .. 0.85) map onto the last three stages.
-            float q = Math.max(0f, Math.min(1f, p));
-            mRestoredStage = q < 0.28f ? 3 : q < 0.71f ? 4 : 5;
-        }
-        StageStepperView stepper = home(R.id.twoStep);
-        if (stepper != null) stepper.setStage(mRestoredStage);
     }
 
     /** Turn the advanced log on or off from anywhere - the switch, a card being
-     *  lifted, the saved setting at startup.
-     *  OneUiSwitch is drawn from scratch and only reports a change when a finger
-     *  clicks it: quietly calling setChecked() moves the thumb and tells nobody,
-     *  which left the pill showing off while the log went on behaving as if it
-     *  were still on. Everything therefore comes through here. */
+     *  lifted, the saved setting at startup. Everything therefore comes through
+     *  here so the switch and the log never disagree. */
     private void setAdvancedLog(boolean on) {
         advancedLog = on;
-        android.widget.CompoundButton sw = settings(R.id.switchAdvancedLog);
+        com.google.android.material.materialswitch.MaterialSwitch sw =
+                settings(R.id.switchAdvancedLog);
         if (sw != null) sw.setChecked(on);
         createDeviceProtectedStorageContext()
                 .getSharedPreferences("dfroot", MODE_PRIVATE)
@@ -289,67 +199,46 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         updateLogVisibility();
     }
 
-    /** Visibility of log / share button / progress bar, composed from the
-     *  advanced-log setting and whether any run data exists. The log block
-     *  needs the switch; the share circle does not - a finished run can always
-     *  be saved. */
+    /** Visibility of the popup's log block and copy button, composed from the
+     *  advanced-log setting and whether any run data exists. */
     private void updateLogVisibility() {
         boolean hasRun = logBuffer.length() > 0
                 || (lastLogFile != null && lastLogFile.exists());
         logAllowed = advancedLog && hasRun;
         fadeLog(logAllowed);
-        // Share circle: any FINISHED run, advanced log on or off. Still hidden
-        // while a run is in flight (the log is being written) and shown for a
-        // saved log from a previous boot, which is finished by definition.
-        setShareButtonVisible(hasRun && !running);
-        View stepper = home(R.id.twoStep);
-        if (stepper != null) stepper.setVisibility(View.VISIBLE);
+        setCopyButtonVisible(hasRun && !running);
     }
 
     /**
-     * Ease the log box in or away (VIS2.1, VIS4). The log has half a dozen
-     * reasons to appear or vanish - the switch, a run starting, a card being
-     * lifted, that card being collapsed - and every one of them used to flip the
-     * views between GONE and VISIBLE like a light switch, which read as a flash.
-     * It now moves on one alpha, and a log that is fading out only leaves the
-     * layout once there is nothing left of it to see.
-     * One alpha for one box: the text and the gradient over it are the same view
-     * since VIS4, so there is nothing left that could fall a frame behind.
+     * Ease the log box away inside the popup. The popup itself is short-lived,
+     * so the box is simply shown or hidden; fading still applies while a run is
+     * in flight and the popup stays open.
      */
     private void fadeLog(boolean show) {
-        final View box = home(R.id.logWindow);
+        final View box = panel(R.id.panelLog);
         if (box == null) return;
-        boolean visible = box.getVisibility() == View.VISIBLE;
-        float target = show ? 1f : 0f;
-        if (visible == show && box.getAlpha() == target) return;
         box.animate().cancel();
-        if (show) box.setVisibility(View.VISIBLE);
-        box.animate().alpha(target).setDuration(LOG_FADE_MS)
-                .withEndAction(() -> {
-                    if (box.getAlpha() <= 0f) box.setVisibility(View.GONE);
-                })
-                .start();
+        box.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
-    /** Pop the share circle in/out with the same animation the KernelSU
-     *  launcher circle uses (fade + 0.6x -> 1x scale, 150ms delay). */
-    private void setShareButtonVisible(boolean show) {
-        android.widget.ImageButton b = home(R.id.btnShareLog);
+    /** The copy button lives at the bottom of the popup's log block. */
+    private void setCopyButtonVisible(boolean show) {
+        View b = panel(R.id.btnCopyLog);
+        if (b != null) b.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    /** State of the run button rendered inside the popup. */
+    private void updatePopupRunButton() {
+        View b = panel(R.id.btnPopupRun);
         if (b == null) return;
-        boolean wasVisible = b.getVisibility() == View.VISIBLE
-                && b.getAlpha() > 0.99f;
-        if (show && !wasVisible) {
-            b.setVisibility(View.VISIBLE);
-            b.setAlpha(0f);
-            b.setScaleX(0.6f);
-            b.setScaleY(0.6f);
-            b.postDelayed(() -> b.animate()
-                    .alpha(1f).scaleX(1f).scaleY(1f).setDuration(180).start(), 150);
-        } else if (show) {
-            b.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(120).start();
-        } else if (wasVisible) {
-            b.animate().alpha(0f).scaleX(0.6f).scaleY(0.6f).setDuration(200)
-                    .withEndAction(() -> b.setVisibility(View.GONE)).start();
+        boolean canStart = !running && canRun();
+        b.setEnabled(canStart);
+        b.setAlpha(canStart ? 1f : 0.4f);
+        if (b instanceof com.google.android.material.button.MaterialButton) {
+            com.google.android.material.button.MaterialButton btn =
+                    (com.google.android.material.button.MaterialButton) b;
+            btn.setText(running ? R.string.running
+                    : isRooted() ? R.string.rooted : R.string.get_root);
         }
     }
 
@@ -371,6 +260,10 @@ public class MainActivity extends AppCompatActivity implements IReporter {
      *  model, Android version, patch level and kernel version, so the old
      *  model-prefixed firmware token ("S931BXXU1AYB2") was redundant noise. */
     private static final String LOG_HEADER = "SYSTEM";
+
+    /** First line the device banner block always contains; its presence in the
+     *  log is what "SYSTEM" verified means. */
+    private static final String SYSTEM_BANNER = "\napp version: ";
 
     /** Header lines render big, white and bold; the rest is dimmed. */
     private boolean isHeader(String line) {
@@ -492,7 +385,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         // actually ship that library are offered.
         loadSuManagerPref();
 
-        if (new File("/dev/df").exists()) {
+        if (isRooted()) {
             setRootedState();
         }
 
@@ -524,6 +417,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 appendLog(t);
             }
         }
+        updateSystemCheck();
 
         // Advanced log toggle: full log vs. simple status (progress bar only).
         advancedLog = createDeviceProtectedStorageContext()
@@ -531,16 +425,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 .getBoolean("advanced_log", false);
         updateLogVisibility();
 
-        // Restore the simple status for the current state: rooted device or a
-        // successful last run -> verified; failed run -> Failed. Applied once the
-        // home view exists (see applyRestoredHomeState).
-        boolean rootedNow = new File("/dev/df").exists();
-        boolean lastSuccess = hasLastLog
-                && createDeviceProtectedStorageContext()
-                        .getSharedPreferences("dfroot", MODE_PRIVATE)
-                        .getBoolean("last_run_success", false);
         mLastFailed = hasLastLog && last.toLowerCase().contains("=== exploit failed");
-        mRestoredStage = (rootedNow || lastSuccess) ? STAGE_VERIFIED : -1;
 
         ComponentName bootReceiver = new ComponentName(this, BootReceiver.class);
         mBootReceiverEnabled = getPackageManager().getComponentEnabledSetting(bootReceiver)
@@ -572,6 +457,10 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 binding.viewPager.setCurrentItem(1, true);
                 selectedNav = R.id.nav_settings;
                 return true;
+            } else if (item.getItemId() == R.id.nav_run_placeholder) {
+                // Centre slot only exists to keep Home/Settings symmetric -
+                // the round run button is drawn on top of it.
+                return false;
             }
             return false;
         });
@@ -595,26 +484,25 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             });
         }
 
-        View run = home(R.id.btnRun);
+        View run = binding.btnRun;
         if (run != null) {
             run.setOnClickListener(v -> {
                 if (running || !canRun()) return;
-                // Two-tap confirmation: first tap arms, second runs.
-                if (!runArmed) {
-                    runArmed = true;
-                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                    showRunningBadge();
-                    if (v instanceof TextView) ((TextView) v).setText(R.string.confirm_run);
-                    return;
+                // The button is anchored to the bar, so it is reachable from
+                // both pages - jump to Home before the panel unfolds there.
+                if (binding.viewPager.getCurrentItem() != 0) {
+                    binding.viewPager.setCurrentItem(0, true);
                 }
-                startRun();
+                // The action itself lives in the popup, so the first tap only
+                // unfolds it.
+                showRunPanel();
             });
             // Subtle push-in
             run.setOnTouchListener((v, ev) -> {
                 switch (ev.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                        v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(80).start();
+                        v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80).start();
                         break;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
@@ -627,32 +515,93 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             });
         }
 
-        View ksu = home(R.id.btnKsu);
-        if (ksu != null) {
-            ksu.setOnClickListener(v -> {
+        View ksu = home(R.id.rowSuManager);
+        if (ksu != null) ksu.setOnLongClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            openKsu();
+            return true;
+        });
+
+        fillDeviceInfo();
+        View copyInfo = home(R.id.btnCopyDeviceInfo);
+        if (copyInfo != null) {
+            copyInfo.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                openKsu();
+                copyDeviceInfo();
             });
         }
 
-        View share = home(R.id.btnShareLog);
-        if (share != null) share.setOnClickListener(v -> shareLog());
-
-        initStepper();
+        View softReboot = home(R.id.btnSoftReboot);
+        if (softReboot != null) {
+            softReboot.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                showSoftRebootMenu(v);
+            });
+        }
         updateLogVisibility();
         updateRunButton();
     }
 
-    /** Applies the state of the previous run to the stage chain and status card
-     *  once the home view exists. */
+    /** Static device facts shown at the bottom of the home page. */
+    private void fillDeviceInfo() {
+        TextView model = home(R.id.deviceModel);
+        if (model != null) {
+            String maker = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.trim();
+            if (!maker.isEmpty()) {
+                maker = Character.toUpperCase(maker.charAt(0)) + maker.substring(1);
+            }
+            model.setText((maker + " " + Build.MODEL).trim());
+        }
+        TextView system = home(R.id.deviceSystem);
+        if (system != null) {
+            system.setText(Build.VERSION.RELEASE + " · API " + Build.VERSION.SDK_INT);
+        }
+        TextView kernel = home(R.id.deviceKernel);
+        if (kernel != null) {
+            kernel.setText(System.getProperty("os.version", "unknown"));
+        }
+        TextView arch = home(R.id.deviceArch);
+        if (arch != null) {
+            String[] abis = Build.SUPPORTED_ABIS;
+            arch.setText(abis != null && abis.length > 0 ? abis[0] : "unknown");
+        }
+        TextView fingerprint = home(R.id.deviceFingerprint);
+        if (fingerprint != null) {
+            fingerprint.setText(Build.FINGERPRINT == null ? "unknown" : Build.FINGERPRINT);
+        }
+    }
+
+    /** Copies the whole info block as plain "label: value" lines. */
+    private void copyDeviceInfo() {
+        StringBuilder sb = new StringBuilder();
+        appendInfoLine(sb, R.string.info_device, R.id.deviceModel);
+        appendInfoLine(sb, R.string.info_system, R.id.deviceSystem);
+        appendInfoLine(sb, R.string.info_kernel, R.id.deviceKernel);
+        appendInfoLine(sb, R.string.info_arch, R.id.deviceArch);
+        appendInfoLine(sb, R.string.info_fingerprint, R.id.deviceFingerprint);
+        android.content.ClipboardManager cm =
+                (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm == null) return;
+        cm.setPrimaryClip(android.content.ClipData.newPlainText(
+                getString(R.string.device_info), sb.toString()));
+        android.widget.Toast.makeText(this, R.string.device_info_copied,
+                android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private void appendInfoLine(StringBuilder sb, int label, int valueId) {
+        TextView value = home(valueId);
+        if (value == null) return;
+        if (sb.length() > 0) sb.append('\n');
+        sb.append(getString(label)).append(": ").append(value.getText());
+    }
+
+    /** Applies the current state to the status card. The chain itself is
+     *  replayed when the popup is inflated. */
     private void applyRestoredHomeState() {
-        StageStepperView stepper = home(R.id.twoStep);
-        if (stepper == null) return;
-        if (mRestoredStage >= 0) {
-            stepper.setStage(mRestoredStage);
-            updateRunButton();
-        } else if (mLastFailed) {
+        if (mLastFailed && !isRooted()) {
             setFailedState();
+        } else {
+            updateRunButton();
         }
     }
 
@@ -662,7 +611,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         // operation. bootstrap.c reads disable_modules and touches a `disable`
         // flag file in every installed module before ksud runs, so the toggle
         // works before the device is rooted and applies on the next root.
-        android.widget.CompoundButton modules = settings(R.id.switchModules);
+        com.google.android.material.materialswitch.MaterialSwitch modules =
+                settings(R.id.switchModules);
         if (modules != null) {
             moduleRefresh = true;
             modules.setChecked(!mDeCtx.getSharedPreferences("dfroot", MODE_PRIVATE)
@@ -680,7 +630,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             });
         }
 
-        android.widget.CompoundButton expert = settings(R.id.switchExpertMode);
+        com.google.android.material.materialswitch.MaterialSwitch expert =
+                settings(R.id.switchExpertMode);
         if (expert != null) {
             expert.setChecked(expertMode);
             expert.setOnCheckedChangeListener((btn, checked) -> {
@@ -692,7 +643,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         }
 
         ComponentName bootReceiver = new ComponentName(this, BootReceiver.class);
-        android.widget.CompoundButton boot = settings(R.id.switchBootStart);
+        com.google.android.material.materialswitch.MaterialSwitch boot =
+                settings(R.id.switchBootStart);
         if (boot != null) {
             boot.setChecked(mBootReceiverEnabled);
             boot.setOnCheckedChangeListener((btn, checked) -> {
@@ -700,18 +652,16 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                         checked ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
                                 : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                         PackageManager.DONT_KILL_APP);
-                android.widget.CompoundButton soft = settings(R.id.switchAutoSoftReboot);
-                if (soft != null) soft.setEnabled(expertMode && checked);
             });
         }
 
         boolean autoSoftReboot = createDeviceProtectedStorageContext()
                 .getSharedPreferences("dfroot", MODE_PRIVATE)
                 .getBoolean("auto_soft_reboot", false);
-        android.widget.CompoundButton soft = settings(R.id.switchAutoSoftReboot);
+        com.google.android.material.materialswitch.MaterialSwitch soft =
+                settings(R.id.switchAutoSoftReboot);
         if (soft != null) {
             soft.setChecked(autoSoftReboot);
-            soft.setEnabled(mBootReceiverEnabled);
             soft.setOnCheckedChangeListener((btn, checked) ->
                     createDeviceProtectedStorageContext()
                             .getSharedPreferences("dfroot", MODE_PRIVATE)
@@ -736,7 +686,8 @@ public class MainActivity extends AppCompatActivity implements IReporter {
 
         setAdvancedLog(advancedLog);
 
-        android.widget.CompoundButton adv = settings(R.id.switchAdvancedLog);
+        com.google.android.material.materialswitch.MaterialSwitch adv =
+                settings(R.id.switchAdvancedLog);
         if (adv != null) {
             adv.setOnCheckedChangeListener((btn, checked) -> setAdvancedLog(checked));
         }
@@ -745,16 +696,17 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     /** Kick off the exploit: lock the UI, clear the old log, hand off to the worker. */
     private void startRun() {
         running = true;
-        runArmed = false;
+        updateSoftRebootButton();
         setAppearanceSelectorsEnabled(false);
-        View run = home(R.id.btnRun);
+        View run = binding.btnRun;
         if (run != null) {
             run.setEnabled(false);
             run.setAlpha(0.4f);
-            if (run instanceof TextView) ((TextView) run).setText(R.string.running);
         }
-        setStatusCard(R.color.accent_cyan, R.drawable.ic_play, R.string.running);
-        TextView out = home(R.id.outputView);
+        setStatusCard(R.color.status_running, R.drawable.ic_play, R.string.running);
+        showRunPanel();
+        updatePopupRunButton();
+        TextView out = panel(R.id.outputView);
         if (out != null) out.setText("");
         logBuffer.setLength(0);
         if (lastLogFile != null && lastLogFile.exists()) lastLogFile.delete();
@@ -762,34 +714,21 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 .getSharedPreferences("dfroot", MODE_PRIVATE)
                 .edit().putBoolean("last_run_success", false).apply();
         appendLog(LOG_HEADER);
-        StageStepperView stepper = home(R.id.twoStep);
-        if (stepper != null) stepper.reset();
+        updateSystemCheck();
         updateLogVisibility();
         mExec.execute(this::runExploit);
     }
 
-    /** Expert mode off: the autorun card is inaccessible - greyed text and
-     *  disabled toggles, titles suffixed with (Expert). */
+    /** Expert mode off: the autorun / auto-reboot cards are simply not shown.
+     *  The two switches are independent: autorun only decides whether a run
+     *  starts at boot, auto soft reboot only decides what happens after a
+     *  successful run (manual or boot). */
     private void applyExpertMode() {
-        boolean ok = expertMode;
-        TextView autorunTitle = settings(R.id.tvAutorunTitle);
-        TextView rebootTitle = settings(R.id.tvRebootTitle);
-        TextView autorunDesc = settings(R.id.tvAutorunDesc);
-        TextView rebootDesc = settings(R.id.tvRebootDesc);
-        android.widget.CompoundButton boot = settings(R.id.switchBootStart);
-        android.widget.CompoundButton soft = settings(R.id.switchAutoSoftReboot);
-        if (autorunTitle != null) {
-            autorunTitle.setText(ok ? R.string.autorun : R.string.autorun_expert);
-            autorunTitle.setTextColor(getColor(ok ? R.color.text_primary : R.color.text_secondary));
-        }
-        if (rebootTitle != null) {
-            rebootTitle.setText(ok ? R.string.auto_reboot : R.string.auto_reboot_expert);
-            rebootTitle.setTextColor(getColor(ok ? R.color.text_primary : R.color.text_secondary));
-        }
-        if (autorunDesc != null) autorunDesc.setTextColor(getColor(R.color.text_secondary));
-        if (rebootDesc != null) rebootDesc.setTextColor(getColor(R.color.text_secondary));
-        if (boot != null) boot.setEnabled(ok);
-        if (soft != null) soft.setEnabled(ok && boot != null && boot.isChecked());
+        int vis = expertMode ? View.VISIBLE : View.GONE;
+        View autorun = settings(R.id.cardAutorun);
+        View reboot = settings(R.id.cardAutoReboot);
+        if (autorun != null) autorun.setVisibility(vis);
+        if (reboot != null) reboot.setVisibility(vis);
     }
 
     /** Re-read the SU manager selection when returning to the app: the user may
@@ -832,10 +771,12 @@ public class MainActivity extends AppCompatActivity implements IReporter {
     private static final class SuManagerEntry {
         final String packageName;
         final CharSequence label;
+        final android.graphics.drawable.Drawable icon;
 
-        SuManagerEntry(String pkg, CharSequence label) {
+        SuManagerEntry(String pkg, CharSequence label, android.graphics.drawable.Drawable icon) {
             this.packageName = pkg;
             this.label = label;
+            this.icon = icon;
         }
     }
 
@@ -849,29 +790,100 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             if (ai.packageName.equals(getPackageName())) continue;
             if (ai.nativeLibraryDir == null) continue;
             if (!new File(ai.nativeLibraryDir, "libksud.so").exists()) continue;
-            out.add(new SuManagerEntry(ai.packageName, pm.getApplicationLabel(ai)));
+            out.add(new SuManagerEntry(ai.packageName, pm.getApplicationLabel(ai),
+                    pm.getApplicationIcon(ai)));
         }
         out.sort((a, b) -> a.label.toString().compareToIgnoreCase(b.label.toString()));
         return out;
     }
 
-    /** Restores the saved selection, dropping it if that app is gone or no
-     *  longer ships libksud.so. */
+    /** Well-known SU manager packages. Only used to preselect a default, never
+     *  to filter the picker list. */
+    private static final String[] KNOWN_MANAGERS = {
+            "me.weishu.kernelsu",
+            "com.rifsxd.ksunext",
+            "com.rifsxd.kernelsu",
+            "me.bmax.apatch",
+            "me.garfieldhan.apatch.next",
+            "io.github.huskydg.magisk",
+            "com.topjohnwu.magisk",
+            "io.github.vvb2060.magisk",
+            "com.dergoogler.mmrl",
+    };
+
+    /** Picks a default when nothing was saved yet. The ksud scan is the first
+     *  source, but it is not authoritative - some managers ship the library
+     *  under a different name/dir, so the known package list is tried next.
+     *  A single candidate from either source is the default. */
+    private SuManagerEntry findDefaultSuManager() {
+        List<SuManagerEntry> found = scanSuManagers();
+        if (found.isEmpty()) {
+            PackageManager pm = getPackageManager();
+            for (String pkg : KNOWN_MANAGERS) {
+                try {
+                    ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+                    found.add(new SuManagerEntry(pkg, pm.getApplicationLabel(ai),
+                            pm.getApplicationIcon(ai)));
+                } catch (PackageManager.NameNotFoundException ignored) {
+                    // not installed
+                }
+            }
+        }
+        if (found.isEmpty()) return null;
+        // Several managers installed: rank them. One manager: take it.
+        found.sort((a, b) -> {
+            int ra = managerRank(a.packageName);
+            int rb = managerRank(b.packageName);
+            if (ra != rb) return ra - rb;
+            return a.label.toString().compareToIgnoreCase(b.label.toString());
+        });
+        return found.get(0);
+    }
+
+    /** Index in KNOWN_MANAGERS, or a large value for anything unknown. */
+    private static int managerRank(String pkg) {
+        for (int i = 0; i < KNOWN_MANAGERS.length; i++) {
+            if (KNOWN_MANAGERS[i].equals(pkg)) return i;
+        }
+        return KNOWN_MANAGERS.length;
+    }
+
+    /** Restores the saved selection, or picks a default when none was saved.
+     *  Safe to call before the home view exists: the fields are the source of
+     *  truth and the card is rendered from them by onHomeViewReady(). */
     private void loadSuManagerPref() {
         SharedPreferences sp = mDeCtx.getSharedPreferences("dfroot", MODE_PRIVATE);
         String saved = sp.getString("su_manager", null);
         suManagerPkg = null;
         suManagerLabel = null;
+        suManagerIcon = null;
         if (saved != null) {
-            for (SuManagerEntry e : scanSuManagers()) {
-                if (e.packageName.equals(saved)) {
-                    suManagerPkg = e.packageName;
-                    suManagerLabel = e.label;
-                    break;
-                }
+            PackageManager pm = getPackageManager();
+            try {
+                ApplicationInfo ai = pm.getApplicationInfo(saved, 0);
+                suManagerPkg = saved;
+                suManagerLabel = pm.getApplicationLabel(ai);
+                suManagerIcon = pm.getApplicationIcon(ai);
+            } catch (PackageManager.NameNotFoundException e) {
+                sp.edit().remove("su_manager").apply();
             }
-            if (suManagerPkg == null) sp.edit().remove("su_manager").apply();
         }
+        // Nothing picked yet: default to the best-ranked installed manager and
+        // persist it, so the very first launch is already selected.
+        if (suManagerPkg == null) {
+            SuManagerEntry pick = findDefaultSuManager();
+            if (pick != null) {
+                sp.edit().putString("su_manager", pick.packageName).apply();
+                suManagerPkg = pick.packageName;
+                suManagerLabel = pick.label;
+                suManagerIcon = pick.icon;
+            }
+        }
+        renderSuManagerCard();
+    }
+
+    /** Writes the selection into the home card (no-op until that view exists). */
+    private void renderSuManagerCard() {
         TextView sub = home(R.id.suManagerSubtitle);
         if (sub != null) {
             sub.setText(suManagerPkg == null
@@ -880,119 +892,104 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             sub.setTextColor(getColor(suManagerPkg == null
                     ? R.color.error : R.color.text_secondary));
         }
+        renderSuManagerIcon();
     }
 
-    /** OneUI-style rounded popup list over the dim overlay - same look and feel
-     *  as the overflow menu, so the picker does not look like a stock spinner. */
+    /** Puts the chosen manager's launcher icon on the home card. */
+    private void renderSuManagerIcon() {
+        android.widget.ImageView icon = home(R.id.imgSuManager);
+        if (icon == null) return;
+        icon.setImageDrawable(suManagerIcon);
+        icon.setVisibility(suManagerIcon == null ? View.GONE : View.VISIBLE);
+    }
+
+    /** Root-manager picker: stock single-choice dialog with each app's own icon. */
     private void showSuManagerPopup() {
-        float md = getResources().getDisplayMetrics().density;
         List<SuManagerEntry> apps = scanSuManagers();
-        final android.widget.PopupWindow[] pwRef = {null};
-
-        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
-        box.setOrientation(android.widget.LinearLayout.VERTICAL);
-        box.setBackgroundResource(R.drawable.popup_bg);
-        box.setPadding(0, (int) (6 * md), 0, (int) (6 * md));
-
         if (apps.isEmpty()) {
-            TextView none = new TextView(this);
-            none.setText(R.string.su_none);
-            none.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
-            none.setPadding((int) (20 * md), (int) (12 * md), (int) (20 * md), (int) (12 * md));
-            none.setTextColor(getColor(R.color.text_secondary));
-            none.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15);
-            box.addView(none);
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setMessage(R.string.su_none)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
+            return;
         }
 
-        for (SuManagerEntry e : apps) {
-            android.widget.LinearLayout col = new android.widget.LinearLayout(this);
-            col.setOrientation(android.widget.LinearLayout.VERTICAL);
-            col.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
-            col.setBackgroundResource(R.drawable.menu_row_highlight);
-            col.setPadding((int) (20 * md), 0, (int) (20 * md), 0);
+        float md = getResources().getDisplayMetrics().density;
+        int pad = (int) (20 * md);
+        int iconSize = (int) (32 * md);
+        int gap = (int) (16 * md);
 
-            android.widget.LinearLayout line = new android.widget.LinearLayout(this);
-            line.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-            line.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
-            TextView t = new TextView(this);
-            t.setText(e.label);
-            t.setTextColor(getColor(R.color.text_primary));
-            t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15);
-            line.addView(t, new android.widget.LinearLayout.LayoutParams(
-                    0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            if (e.packageName.equals(suManagerPkg)) {
-                android.view.View dot = new android.view.View(this);
-                dot.setBackgroundResource(R.drawable.dot_white);
-                android.widget.LinearLayout.LayoutParams dotLp =
-                        new android.widget.LinearLayout.LayoutParams(
-                                (int) (7 * md), (int) (7 * md));
-                dotLp.setMargins((int) (7 * md), 0, 0, 0);
-                line.addView(dot, dotLp);
-            }
-            col.addView(line, new android.widget.LinearLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (26 * md)));
+        android.widget.LinearLayout list = new android.widget.LinearLayout(this);
+        list.setOrientation(android.widget.LinearLayout.VERTICAL);
+        list.setPadding(0, (int) (8 * md), 0, (int) (8 * md));
 
-            TextView sub = new TextView(this);
-            sub.setText(e.packageName);
-            sub.setTextColor(getColor(R.color.text_secondary));
-            sub.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11);
-            col.addView(sub);
+        final androidx.appcompat.app.AlertDialog[] ref = {null};
+        int checkedIndex = -1;
+        for (int i = 0; i < apps.size(); i++) {
+            if (apps.get(i).packageName.equals(suManagerPkg)) checkedIndex = i;
+        }
 
-            col.setOnClickListener(v2 -> {
-                v2.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                selectSuManager(e);
-                if (pwRef[0] != null) pwRef[0].dismiss();
+        for (int i = 0; i < apps.size(); i++) {
+            SuManagerEntry e = apps.get(i);
+            android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setBackgroundResource(R.drawable.menu_row_highlight);
+            row.setPadding(pad, 0, pad, 0);
+            row.setMinimumHeight((int) (56 * md));
+
+            android.widget.ImageView ic = new android.widget.ImageView(this);
+            ic.setImageDrawable(e.icon);
+            ic.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+            row.addView(ic, new android.widget.LinearLayout.LayoutParams(iconSize, iconSize));
+
+            android.widget.LinearLayout text = new android.widget.LinearLayout(this);
+            text.setOrientation(android.widget.LinearLayout.VERTICAL);
+            android.widget.LinearLayout.LayoutParams textLp =
+                    new android.widget.LinearLayout.LayoutParams(0,
+                            android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            textLp.setMargins(gap, 0, 0, 0);
+            row.addView(text, textLp);
+
+            TextView name = new TextView(this);
+            name.setText(e.label);
+            name.setTextColor(getColor(R.color.text_primary));
+            name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15);
+            text.addView(name);
+
+            TextView pkg = new TextView(this);
+            pkg.setText(e.packageName);
+            pkg.setTextColor(getColor(R.color.text_secondary));
+            pkg.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
+            text.addView(pkg);
+
+            android.widget.RadioButton mark = new android.widget.RadioButton(this);
+            mark.setChecked(i == checkedIndex);
+            mark.setClickable(false);
+            mark.setFocusable(false);
+            mark.setButtonTintList(android.content.res.ColorStateList.valueOf(
+                    getColor(R.color.accent_ink)));
+            row.addView(mark);
+
+            final int index = i;
+            row.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                selectSuManager(apps.get(index));
+                if (ref[0] != null) ref[0].dismiss();
             });
-            box.addView(col, new android.widget.LinearLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, (int) (56 * md)));
+            list.addView(row, new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
         }
 
-        box.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        View anchor = home(R.id.cardSuManager);
-        int cardW = anchor == null ? 0 : anchor.getWidth();
-        int pw_w = cardW > 0 ? cardW : Math.max(box.getMeasuredWidth(), (int) (240 * md));
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.addView(list);
 
-        final android.widget.PopupWindow pw = new android.widget.PopupWindow(box,
-                pw_w, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
-                android.graphics.Color.TRANSPARENT));
-        pw.setOutsideTouchable(true);
-        pwRef[0] = pw;
-        pw.setOnDismissListener(() ->
-                binding.dimOverlay.animate().alpha(0f).setDuration(150)
-                        .withEndAction(() -> binding.dimOverlay
-                                .setVisibility(View.GONE)).start());
-
-        box.setOutlineProvider(new android.view.ViewOutlineProvider() {
-            @Override
-            public void getOutline(View view, android.graphics.Outline outline) {
-                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 26 * md);
-            }
-        });
-        box.setClipToOutline(true);
-        box.setElevation(48 * md);
-
-        int[] loc = new int[2];
-        if (anchor != null) anchor.getLocationOnScreen(loc);
-        // Centered, NOT card-anchored: the popup is exactly card-wide and the
-        // card sits 16dp from each edge, so half the leftover IS the card's own
-        // margin. Anchoring to the card's left + 16dp pushed the popup 16dp
-        // right, which read as off-centre and clipped its right edge.
-        int x = (getResources().getDisplayMetrics().widthPixels - pw_w) / 2;
-        int y = loc[1] + (anchor == null ? 0 : anchor.getHeight()) + (int) (4 * md);
-        binding.dimOverlay.setVisibility(View.VISIBLE);
-        binding.dimOverlay.setAlpha(0f);
-        binding.dimOverlay.animate().alpha(0.5f).setDuration(150).start();
-        box.setPivotX(0f);
-        box.setPivotY(0f);
-        box.setScaleX(0.9f);
-        box.setScaleY(0.9f);
-        box.setAlpha(0f);
-        pw.showAtLocation(anchor != null ? anchor : binding.getRoot(),
-                android.view.Gravity.TOP | android.view.Gravity.START, x, y);
-        box.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(150)
-                .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                .start();
+        ref[0] = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.su_manager)
+                .setView(scroll)
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     /** Writes the DE pref that bootstrap.c reads as su_manager, then unlocks Run. */
@@ -1001,42 +998,138 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 .edit().putString("su_manager", e.packageName).apply();
         suManagerPkg = e.packageName;
         suManagerLabel = e.label;
-        TextView sub = home(R.id.suManagerSubtitle);
-        if (sub != null) {
-            sub.setText(e.label + "  (" + e.packageName + ")");
-            sub.setTextColor(getColor(R.color.text_secondary));
-        }
+        suManagerIcon = e.icon;
+        renderSuManagerCard();
         updateRunButton();
     }
 
-    /** Run needs a manager selected, no failed-run lock and no existing root. */
+    /** /dev/df is created by the shellcode with mode 0000, so the app uid can
+     *  never read or write it - permission probes always failed. /dev/dfm6 is
+     *  touched by bootstrap.c only after `ksud late-load` succeeded, which is
+     *  the actual root marker; /dev/df alone can be left over from a failed
+     *  run. Both live in /dev, which is recreated on a real reboot. */
+    private static boolean isRooted() {
+        return new File("/dev/df").exists() && new File("/dev/dfm6").exists();
+    }
+
+    /** Dumps every input that feeds the "already rooted" decision, so a wrong
+     *  status card can be traced to the exact condition. Logged only when the
+     *  snapshot changes, to keep logcat readable. */
+    private String rootEvidenceSeen;
+
+    private void logRootEvidence(String from) {
+        File dev = new File("/dev/df");
+        boolean devExists = dev.exists();
+        boolean daemonMarker = new File("/dev/dfm6").exists();
+        String uid = "n/a";
+        try {
+            java.io.BufferedReader r = new java.io.BufferedReader(
+                    new java.io.FileReader("/proc/self/status"));
+            for (String l; (l = r.readLine()) != null; ) {
+                if (l.startsWith("Uid:")) {
+                    uid = l.substring(4).trim();
+                    break;
+                }
+            }
+            r.close();
+        } catch (IOException ignored) {
+        }
+        String evidence = "from=" + from
+                + " /dev/df.exists=" + devExists
+                + " /dev/dfm6.exists=" + daemonMarker
+                + " readable=" + dev.canRead()
+                + " writable=" + dev.canWrite()
+                + " uid=" + uid
+                + " suManagerPkg=" + suManagerPkg
+                + " failedRun=" + failedRun
+                + " mLastFailed=" + mLastFailed
+                + " canRun=" + canRun();
+        if (evidence.equals(rootEvidenceSeen)) return;
+        rootEvidenceSeen = evidence;
+        Log.i(TAG, "root-evidence " + evidence);
+    }
+
+    /** Run needs a manager selected and no existing root. A failed run is not a
+     *  lock: the user can retry right away. */
     private boolean canRun() {
-        return suManagerPkg != null && !failedRun && !new File("/dev/df").exists();
+        return suManagerPkg != null && !isRooted();
     }
 
     /** Single place that decides the Run pill's look and enabled state. */
     private void updateRunButton() {
+        logRootEvidence("updateRunButton");
+        updateSoftRebootButton();
         if (running) return;
-        if (failedRun) {
-            setFailedState();
-            return;
-        }
-        if (new File("/dev/df").exists()) {
+        if (isRooted()) {
             setRootedState(true);
             return;
         }
         boolean ok = suManagerPkg != null;
-        View run = home(R.id.btnRun);
+        View run = binding.btnRun;
         if (run != null) {
-            if (run instanceof TextView) ((TextView) run).setText(R.string.run_exploit);
             run.setEnabled(ok);
             run.setAlpha(ok ? 1f : 0.4f);
         }
 
-        // 状态卡：激活青色实底 + 勾，未激活灰色实底 + 叉
-        setStatusCard(ok ? R.color.accent_cyan : R.color.status_inactive,
-                ok ? R.drawable.ic_check : R.drawable.ic_error,
+        // 状态卡：待命 = 中性灰描边 + 播放图标，勾只留给真正取得 root
+        setStatusCard(ok ? R.color.status_ready : R.color.error,
+                ok ? R.drawable.ic_play : R.drawable.ic_error,
                 ok ? R.string.status_ready : R.string.status_needs_manager);
+        updatePopupRunButton();
+    }
+
+    /** Soft reboot is only offered while root is up and nothing else runs. */
+    private void updateSoftRebootButton() {
+        View btn = home(R.id.btnSoftReboot);
+        if (btn == null) return;
+        btn.setVisibility(isRooted() && !running ? View.VISIBLE : View.GONE);
+    }
+
+    /** First tap opens the menu; the menu item is the second tap and reboots. */
+    private void showSoftRebootMenu(View anchor) {
+        if (running || !isRooted()) return;
+        androidx.appcompat.widget.PopupMenu menu =
+                new androidx.appcompat.widget.PopupMenu(this, anchor);
+        menu.getMenu().add(0, 1, 0, R.string.soft_reboot);
+        menu.setOnMenuItemClickListener(item -> {
+            softReboot();
+            return true;
+        });
+        menu.show();
+    }
+
+    /** `ksud soft-reboot` needs the ksu domain, so it is handed to the SU
+     *  manager the user picked instead of being exec'd by the app uid. */
+    private void softReboot() {
+        mExec.execute(() -> {
+            String failure = null;
+            try {
+                Process p = new ProcessBuilder("su", "-c", "/data/adb/ksud soft-reboot")
+                        .redirectErrorStream(true).start();
+                java.io.BufferedReader r = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(p.getInputStream()));
+                StringBuilder out = new StringBuilder();
+                for (String l; (l = r.readLine()) != null; ) out.append(l).append('\n');
+                r.close();
+                if (p.waitFor() != 0) {
+                    failure = out.toString().trim();
+                    if (failure.isEmpty()) failure = "exit " + p.exitValue();
+                }
+            } catch (Exception e) {
+                failure = e.getMessage() != null ? e.getMessage() : e.toString();
+            }
+            final String error = failure;
+            mMain.post(() -> {
+                if (error == null) {
+                    android.widget.Toast.makeText(this, R.string.soft_reboot_requested,
+                            android.widget.Toast.LENGTH_SHORT).show();
+                } else {
+                    android.widget.Toast.makeText(this,
+                            getString(R.string.soft_reboot_failed, error),
+                            android.widget.Toast.LENGTH_LONG).show();
+                }
+            });
+        });
     }
 
     /** 状态卡配色/图标/文案，与 JSXposed 的 ActivationCard 规则一致：
@@ -1050,59 +1143,112 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         if (label != null) label.setText(labelRes);
     }
 
-    /** 第一次点击只做确认提示，不改变状态卡底色。 */
-    private void showRunningBadge() {
-        android.widget.ImageView icon = home(R.id.statusIcon);
-        TextView label = home(R.id.statusLabel);
-        if (icon != null) icon.setImageResource(R.drawable.ic_play);
-        if (label != null) label.setText(R.string.confirm_run);
-    }
-
-    /** Failure presentation: left bar label "Failure", right label "Reboot",
-     *  bars + labels red, run pill greyed out like the Running/Rooted state.
-     *  The pill stays disabled because the vendor patch is page-cache only:
-     *  retrying without rebooting would fail the same way. */
+    /** Failure presentation: the status card turns red. The run button stays
+     *  enabled - retrying is allowed. */
     private void setFailedState() {
         failedRun = true;
-        runArmed = false;
-        StageStepperView stepper = home(R.id.twoStep);
-        if (stepper != null) {
-            int reached = Math.min(STAGE_VERIFIED, Math.max(0, stepper.currentStage()));
-            stepper.setFailed(true);
-            stepper.stopAt(reached);
-        }
-
         setStatusCard(R.color.error, R.drawable.ic_error, R.string.failure);
 
-        View run = home(R.id.btnRun);
+        View run = binding.btnRun;
         if (run != null) {
-            run.setEnabled(false);
-            run.setAlpha(0.4f);
+            boolean ok = canRun();
+            run.setEnabled(ok);
+            run.setAlpha(ok ? 1f : 0.4f);
         }
+        updatePopupRunButton();
+    }
+
+    /** Unfolds the progress panel out of the round run button: a card that
+     *  starts as a dot on the button's centre and grows upward into place. */
+    private void showRunPanel() {
+        if (runPanel != null && runPanel.isShowing()) return;
+
+        View content = getLayoutInflater().inflate(R.layout.popup_run, null);
+        runPanelView = content;
+        // The log lives here, so a popup opened after the run (or after an app
+        // restart) has to rebuild it from the buffer / the saved file.
+        TextView out = content.findViewById(R.id.outputView);
+        if (out != null) {
+            out.setText("");
+            String text = logBuffer.length() > 0 ? logBuffer.toString() : readLastLog();
+            for (String l : text.split("\n")) {
+                if (!l.isEmpty()) out.append(styleLogLine(l) + "\n");
+            }
+        }
+        View copy = content.findViewById(R.id.btnCopyLog);
+        if (copy != null) copy.setOnClickListener(v -> copyLog());
+        View popupRun = content.findViewById(R.id.btnPopupRun);
+        if (popupRun != null) popupRun.setOnClickListener(v -> {
+            if (running || !canRun()) return;
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            startRun();
+        });
+        updateSystemCheck();
+        updateLogVisibility();
+        updatePopupRunButton();
+
+        float md = getResources().getDisplayMetrics().density;
+        int screenW = getResources().getDisplayMetrics().widthPixels;
+        int w = screenW - (int) (20 * md);
+        content.measure(
+                View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int h = content.getMeasuredHeight();
+
+        View btn = binding.btnRun;
+        int[] loc = new int[2];
+        btn.getLocationOnScreen(loc);
+        int x = loc[0] + btn.getWidth() / 2 - w / 2;
+        x = Math.max((int) (10 * md), Math.min(x, screenW - w - (int) (10 * md)));
+        int y = Math.max((int) (10 * md), loc[1] - h - (int) (10 * md));
+
+        final android.widget.PopupWindow pw = new android.widget.PopupWindow(
+                content, w, h, false);
+        pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
+                android.graphics.Color.TRANSPARENT));
+        pw.setOutsideTouchable(true);
+        pw.setOnDismissListener(() -> {
+            runPanel = null;
+            runPanelView = null;
+        });
+
+        // Grow from the button: pivot at the card's bottom centre, which sits
+        // right on top of the round button.
+        content.setPivotX(w / 2f);
+        content.setPivotY(h);
+        content.setScaleX(0.12f);
+        content.setScaleY(0.12f);
+        content.setAlpha(0f);
+        pw.showAtLocation(btn, android.view.Gravity.NO_GRAVITY, x, y);
+        content.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(220)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
+        runPanel = pw;
     }
 
     private void setRootedState(boolean rooted) {
-        runArmed = false;
-        // Not rooted does not mean runnable: the manager still has to be picked
-        // and a failed run locks the pill until reboot.
+        logRootEvidence("setRootedState(" + rooted + ")");
+        updateSoftRebootButton();
+        // Not rooted does not mean runnable: the manager still has to be picked.
         boolean ok = !rooted && canRun();
-        if (failedRun) {
+        int runnableColor = ok ? R.color.status_ready : R.color.error;
+        // A previous failed run must not mask a successful one.
+        if (failedRun && !rooted) {
             setFailedState();
             return;
         }
-        View run = home(R.id.btnRun);
+        View run = binding.btnRun;
         if (run != null) {
-            if (run instanceof TextView) {
-                ((TextView) run).setText(rooted ? R.string.rooted : R.string.run_exploit);
-            }
             run.setEnabled(ok);
             run.setAlpha(ok ? 1f : 0.4f);
         }
 
-        setStatusCard(rooted || ok ? R.color.accent_cyan : R.color.status_inactive,
-                rooted || ok ? R.drawable.ic_check : R.drawable.ic_error,
+        setStatusCard(rooted ? R.color.status_running : runnableColor,
+                rooted ? R.drawable.ic_check
+                        : ok ? R.drawable.ic_play : R.drawable.ic_error,
                 rooted ? R.string.rooted
                         : ok ? R.string.status_ready : R.string.status_needs_manager);
+        updatePopupRunButton();
     }
 
     /** Opens the SU manager that is actually selected - pre-3.2 this walked a
@@ -1122,31 +1268,18 @@ public class MainActivity extends AppCompatActivity implements IReporter {
         startActivity(launch);
     }
 
-    /** Saves the current log to Downloads and opens the Downloads screen. */
-    private void shareLog() {
+    /** Copies the run log to the clipboard. */
+    private void copyLog() {
         String log = logBuffer.length() > 0 ? logBuffer.toString() : readLastLog();
         if (log.trim().isEmpty()) {
             return;
         }
-        try {
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Downloads.DISPLAY_NAME, "dirtyfrag_log.txt");
-            values.put(MediaStore.Downloads.MIME_TYPE, "text/plain");
-            Uri uri = getContentResolver().insert(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (uri != null) {
-                try (java.io.OutputStream out = getContentResolver().openOutputStream(uri)) {
-                    out.write(log.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "save log failed", e);
-        }
-        try {
-            startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS));
-        } catch (Exception e) {
-            Log.e(TAG, "open downloads failed", e);
-        }
+        android.content.ClipboardManager cm =
+                (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm == null) return;
+        cm.setPrimaryClip(android.content.ClipData.newPlainText("DirtyFragX log", log));
+        android.widget.Toast.makeText(this, R.string.log_copied,
+                android.widget.Toast.LENGTH_SHORT).show();
     }
 
     private void runExploit() {
@@ -1163,7 +1296,7 @@ public class MainActivity extends AppCompatActivity implements IReporter {
                 // 3 failed to patch files (see exp.c markers[]).
                 String why = lastFailReason != null ? lastFailReason
                         : rc == 1 ? "ksud nonzero exit"
-                        : rc == 2 ? "check logcat & dmesg"
+                        : rc == 2 ? "bootstrap timeout - check logcat & dmesg"
                         : "failed to patch files";
                 report("\n=== exploit failed: " + why + " ===\n");
             }
@@ -1176,13 +1309,13 @@ public class MainActivity extends AppCompatActivity implements IReporter {
             mMain.post(() -> {
                 running = false;
                 setAppearanceSelectorsEnabled(true);
-                boolean rooted = new File("/dev/df").exists();
+                boolean rooted = isRooted();
                 if (rooted) {
                     setRootedState(true);
-                    setSeg2(1f, R.string.verified);
                 } else {
                     setFailedState();
                 }
+                updateSoftRebootButton();
                 updateLogVisibility();
             });
         }

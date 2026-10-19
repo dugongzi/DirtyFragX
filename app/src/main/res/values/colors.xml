@@ -2,7 +2,43 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <!-- Dark backdrop for the white grenade. Was #FF1C1B1F - the Material 3
-         DARK SURFACE hex, which carries a purple bias (B > R,G). Neutral now. -->
     <color name="ic_launcher_background">#FF1C1C1C</color>
+    <!-- Page canvas is slightly tinted so white cards read as separate panels. -->
+    <color name="app_bg">#FFF2F4F4</color>
+    <color name="surface_0">#FFFFFFFF</color>
+    <color name="surface_1">#FFFFFFFF</color>
+    <color name="surface_2">#FFF5F5F5</color>
+    <color name="surface_3">#FFEEEEEE</color>
+    <color name="surface_4">#FFE0E0E0</color>
+    <color name="settings_card">#FFFFFFFF</color>
+    <color name="status_inactive">#FF5F6B7A</color>
+    <color name="status_ready">#FF4A5568</color>
+    <!-- Dark teal in both themes: the status card always uses white content. -->
+    <color name="status_running">#FF2F6F73</color>
+    <color name="info_border">#FF9E9E9E</color>
+    <color name="section_title">#FF757575</color>
+    <color name="accent_cyan">#FF98D2D5</color>
+    <!-- Deep accent for text/icons on light surfaces; accent_cyan stays a fill color. -->
+    <color name="accent_ink">#FF2F6F73</color>
+    <!-- Content drawn on top of accent_cyan: the accent is light in both
+         themes, so white text would wash out. -->
+    <color name="on_accent">#FF10262A</color>
+    <color name="accent_emerald">#FF34D399</color>
+    <color name="accent_amber">#FFFBBF24</color>
+    <color name="accent_blue">#FF60A5FA</color>
+    <color name="accent_purple">#FFA78BFA</color>
+    <color name="accent_pink">#FFF472B6</color>
+    <color name="muted_cyan">#FFE6F3F4</color>
+    <color name="muted_emerald">#FFD1FAE5</color>
+    <color name="muted_amber">#FFFEF3C7</color>
+    <color name="muted_blue">#FFDBEAFE</color>
+    <color name="success">#FF10B981</color>
+    <color name="warning">#FFF59E0B</color>
+    <color name="error">#FFEF4444</color>
+    <color name="text_primary">#FF333333</color>
+    <color name="text_secondary">#FF666666</color>
+    <color name="text_tertiary">#FF999999</color>
+    <color name="line_subtle">#FFE0E0E0</color>
+    <color name="log_text">@color/text_secondary</color>
+    <color name="nav_item_tint">#99666666</color>
 </resources>

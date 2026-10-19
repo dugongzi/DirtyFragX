@@ -43,6 +43,7 @@ android {
     }
 
 // AGP 9 removed the old applicationVariants API; this is the replacement.
+//noinspection WrongGradleMethod
 androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->

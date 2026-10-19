@@ -1,1 +1,68 @@
-<resources />
+<resources>
+    <style name="Theme.DirtyFrag" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">@font/inter</item>
+        <item name="fontFamily">@font/inter</item>
+        <item name="android:windowBackground">@color/app_bg</item>
+        <item name="android:statusBarColor">@color/app_bg</item>
+        <item name="android:navigationBarColor">@color/app_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="colorSurface">@color/surface_1</item>
+        <item name="colorSurfaceContainerLow">@color/surface_1</item>
+        <item name="colorSurfaceContainer">@color/surface_2</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_3</item>
+        <item name="colorSurfaceContainerHighest">@color/surface_4</item>
+        <item name="colorOutline">@color/surface_3</item>
+        <item name="colorControlHighlight">#1FFFFFFF</item>
+        <item name="android:colorBackground">@color/app_bg</item>
+        <item name="colorPrimary">@color/accent_cyan</item>
+        <item name="colorOnPrimary">@color/on_accent</item>
+        <item name="colorPrimaryContainer">@color/muted_cyan</item>
+        <item name="colorOnPrimaryContainer">@color/accent_ink</item>
+        <item name="colorSecondary">@color/accent_emerald</item>
+        <item name="colorOnSecondary">@color/surface_0</item>
+        <item name="colorSecondaryContainer">@color/muted_emerald</item>
+        <item name="colorOnSecondaryContainer">@color/accent_emerald</item>
+        <item name="colorTertiary">@color/accent_amber</item>
+        <item name="colorOnTertiary">@color/surface_0</item>
+        <item name="colorTertiaryContainer">@color/muted_amber</item>
+        <item name="colorOnTertiaryContainer">@color/accent_amber</item>
+        <item name="colorSurfaceVariant">@color/surface_2</item>
+        <item name="colorSurfaceDim">@color/surface_0</item>
+        <item name="colorSurfaceBright">@color/surface_3</item>
+        <item name="colorSurfaceContainerLowest">@color/surface_0</item>
+        <item name="colorOutlineVariant">@color/surface_3</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorControlActivated">@color/accent_cyan</item>
+        <item name="colorAccent">@color/accent_cyan</item>
+        <item name="android:colorAccent">@color/accent_cyan</item>
+        <item name="android:textColorHighlight">#4D9E9E9E</item>
+        <item name="android:windowSplashScreenBackground">@color/app_bg</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="popupMenuStyle">@style/DF_PopupMenu</item>
+        <item name="android:popupMenuStyle">@style/DF_PopupMenu</item>
+        <item name="actionOverflowMenuStyle">@style/DF_OverflowMenu</item>
+        <item name="dropDownListViewStyle">@style/DF_DropDownListView</item>
+        <item name="android:itemTextAppearance">@style/DF_MenuText</item>
+        <item name="textAppearanceListItemSmall">@style/DF_MenuText</item>
+        <item name="listPreferredItemHeightSmall">56dp</item>
+        <item name="listPreferredItemPaddingLeft">12dp</item>
+        <item name="listPreferredItemPaddingRight">12dp</item>
+    </style>
+    <style name="DF_MenuText" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">@font/inter</item>
+        <item name="fontFamily">@font/inter</item>
+        <item name="android:textFontWeight">700</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+</resources>
+

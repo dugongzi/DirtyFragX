@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Capsule behind the update pill. The lime of the app's all-clear (the Run
-     pill's, the Odin dot's, the old version pill's target colour), in the same
-     100dp-radius 44dp module as the two dark toolbar controls to its right - the
-     one place the header goes loud, so it is loud in the same shape everything
-     else in the header uses. Its word is dark: lime is the app's only bright
-     surface and everything written on it is near-black, as on the Run pill. -->
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#4D6E6E6E">
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="?attr/colorControlHighlight">
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="100dp" />
-            <solid android:color="#FFAEEA00" />
+            <solid android:color="@color/surface_2" />
         </shape>
     </item>
 </ripple>

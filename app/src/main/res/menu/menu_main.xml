@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/menu_github"
-        android:title="Github Page" />
-    <item
-        android:id="@+id/menu_expert"
-        android:title="Expert mode" />
-    <item
-        android:id="@+id/menu_remove"
-        android:title="Remove KSU/KSUD" />
+    <item android:id="@+id/menu_github" android:title="@string/github_page" />
+    <item android:id="@+id/menu_expert" android:title="@string/expert_mode" />
+    <item android:id="@+id/menu_remove" android:title="@string/remove_ksu" />
 </menu>

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Grey press-highlight for submenu rows, rounded like the popup card.
-     Content matches the popup background: invisible at rest, opaque so the ripple always draws. -->
+<!-- Transparent at rest so the dialog's own surface shows through; only the
+     press ripple is tinted. Used by the root-manager picker rows. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#4D6E6E6E">
+    android:color="#1F000000">
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="20dp" />
-            <solid android:color="#FF1C1C1C" />
+            <corners android:radius="12dp" />
+            <solid android:color="@android:color/transparent" />
         </shape>
     </item>
 </ripple>

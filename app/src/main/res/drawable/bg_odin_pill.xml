@@ -1,15 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Capsule behind the Odin pill in the toolbar. Same #1C1C1C fill as the menu
-     button's circle beside it (bg_circle), so the pair reads as two matching
-     toolbar controls; 100dp radius on the pill's 44dp height gives it the same
-     half-round ends as that circle. The press highlight is the app's one grey
-     (30% mid-grey, never white), matching menu_row_highlight. -->
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#4D6E6E6E">
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="?attr/colorControlHighlight">
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="100dp" />
-            <solid android:color="#FF1C1C1C" />
+            <solid android:color="@color/surface_2" />
         </shape>
     </item>
 </ripple>
