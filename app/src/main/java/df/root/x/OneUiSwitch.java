@@ -20,10 +20,7 @@ public class OneUiSwitch extends View {
     private static final float TRACK_W = 46f, TRACK_H = 28f;
     private static final float THUMB_D = 21f, MARGIN = 3.5f;
 
-    // Colors (strictly neutral grey - monochrome UI)
-    private static final int ON_TRACK = 0xFFC9C9C9,  ON_THUMB = 0xFF141414;
-    private static final int OFF_TRACK = 0xFF2E2E2E, OFF_THUMB = 0xFF8E8E8E;
-
+    private final int onTrack, onThumb, offTrack, offThumb;
     private static final long ANIM_MS = 160;
 
     private final Paint trackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -45,6 +42,10 @@ public class OneUiSwitch extends View {
 
     public OneUiSwitch(Context context, AttributeSet attrs) {
         super(context, attrs);
+        onTrack = context.getColor(R.color.text_primary);
+        onThumb = context.getColor(R.color.surface_0);
+        offTrack = context.getColor(R.color.surface_4);
+        offThumb = context.getColor(R.color.text_secondary);
         setClickable(true);
         setFocusable(true);
     }
@@ -103,12 +104,12 @@ public class OneUiSwitch extends View {
         float d = getResources().getDisplayMetrics().density;
         float w = getWidth(), h = getHeight();
 
-        // Track colors fade between states; disabled renders the OFF look.
-        boolean on = checked;
-        int trackCol = on ? ON_TRACK : OFF_TRACK;
-        int thumbCol = on ? ON_THUMB : OFF_THUMB;
+        int trackCol = checked ? onTrack : offTrack;
+        int thumbCol = checked ? onThumb : offThumb;
         trackPaint.setColor(trackCol);
         thumbPaint.setColor(thumbCol);
+        trackPaint.setAlpha(enabledState ? 255 : 110);
+        thumbPaint.setAlpha(enabledState ? 255 : 110);
 
         trackRect.set(0, 0, w, h);
         canvas.drawRoundRect(trackRect, h / 2f, h / 2f, trackPaint);
