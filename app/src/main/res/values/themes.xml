@@ -1,7 +1,7 @@
 <resources>
     <style name="Theme.DirtyFrag" parent="Theme.Material3.Light.NoActionBar">
-        <item name="android:fontFamily">@font/inter</item>
-        <item name="fontFamily">@font/inter</item>
+        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
+        <item name="fontFamily">@font/alimama_fang_yuan</item>
         
         <!-- Window colors -->
         <item name="android:windowBackground">@color/app_bg</item>
@@ -18,20 +18,28 @@
         <item name="colorSurfaceContainerHighest">@color/surface_4</item>
         <item name="colorOnSurfaceVariant">@color/text_secondary</item>
         <item name="colorOnBackground">@color/text_primary</item>
-        <item name="colorOutline">@color/line_subtle</item>
-        <item name="colorControlActivated">@color/accent_ink</item>
+        <!-- Keep card backgrounds pure white; elevation only drives the shadow. -->
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="colorControlActivated">@color/tone_teal_primary</item>
+
+        <!-- Accent tone tokens (overridden by ThemeOverlay.DirtyFrag.Tone.*) -->
+        <item name="accentInk">@color/tone_teal_ink</item>
+        <item name="accentFill">@color/tone_teal_fill</item>
+        <item name="accentOn">@color/tone_teal_on_fill</item>
+        <item name="accentContainer">@color/tone_teal_container</item>
+        <item name="accentSolid">@color/tone_teal_solid</item>
 
         <!-- Primary colors -->
-        <item name="colorPrimary">@color/accent_ink</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/muted_cyan</item>
-        <item name="colorOnPrimaryContainer">@color/accent_ink</item>
+        <item name="colorPrimary">@color/tone_teal_primary</item>
+        <item name="colorOnPrimary">@color/tone_teal_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tone_teal_container</item>
+        <item name="colorOnPrimaryContainer">@color/tone_teal_ink</item>
         
         <!-- Secondary colors -->
-        <item name="colorSecondary">@color/accent_ink</item>
-        <item name="colorOnSecondary">@color/white</item>
-        <item name="colorSecondaryContainer">@color/muted_cyan</item>
-        <item name="colorOnSecondaryContainer">@color/accent_ink</item>
+        <item name="colorSecondary">@color/tone_teal_primary</item>
+        <item name="colorOnSecondary">@color/tone_teal_on_primary</item>
+        <item name="colorSecondaryContainer">@color/tone_teal_container</item>
+        <item name="colorOnSecondaryContainer">@color/tone_teal_ink</item>
         
         <!-- Tertiary colors -->
         <item name="colorTertiary">@color/accent_amber</item>
@@ -100,11 +108,88 @@
     </style>
     
     <style name="ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
-        <item name="android:fontFamily">@font/inter</item>
-        <item name="fontFamily">@font/inter</item>
+        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
+        <item name="fontFamily">@font/alimama_fang_yuan</item>
         <item name="android:textFontWeight">700</item>
         <item name="android:textSize">24sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <!-- Accent tone overlays. Applied in onCreate before setContentView. -->
+    <style name="ThemeOverlay.DirtyFrag.Tone.Teal" parent="">
+        <item name="accentInk">@color/tone_teal_ink</item>
+        <item name="accentFill">@color/tone_teal_fill</item>
+        <item name="accentOn">@color/tone_teal_on_fill</item>
+        <item name="accentContainer">@color/tone_teal_container</item>
+        <item name="accentSolid">@color/tone_teal_solid</item>
+        <item name="colorPrimary">@color/tone_teal_primary</item>
+        <item name="colorOnPrimary">@color/tone_teal_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tone_teal_container</item>
+        <item name="colorOnPrimaryContainer">@color/tone_teal_ink</item>
+        <item name="colorSecondary">@color/tone_teal_primary</item>
+        <item name="colorOnSecondary">@color/tone_teal_on_primary</item>
+        <item name="colorSecondaryContainer">@color/tone_teal_container</item>
+        <item name="colorOnSecondaryContainer">@color/tone_teal_ink</item>
+        <item name="colorControlActivated">@color/tone_teal_primary</item>
+        <item name="colorAccent">@color/tone_teal_primary</item>
+        <item name="android:colorAccent">@color/tone_teal_primary</item>
+    </style>
+
+    <style name="ThemeOverlay.DirtyFrag.Tone.Blue" parent="">
+        <item name="accentInk">@color/tone_blue_ink</item>
+        <item name="accentFill">@color/tone_blue_fill</item>
+        <item name="accentOn">@color/tone_blue_on_fill</item>
+        <item name="accentContainer">@color/tone_blue_container</item>
+        <item name="accentSolid">@color/tone_blue_solid</item>
+        <item name="colorPrimary">@color/tone_blue_primary</item>
+        <item name="colorOnPrimary">@color/tone_blue_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tone_blue_container</item>
+        <item name="colorOnPrimaryContainer">@color/tone_blue_ink</item>
+        <item name="colorSecondary">@color/tone_blue_primary</item>
+        <item name="colorOnSecondary">@color/tone_blue_on_primary</item>
+        <item name="colorSecondaryContainer">@color/tone_blue_container</item>
+        <item name="colorOnSecondaryContainer">@color/tone_blue_ink</item>
+        <item name="colorControlActivated">@color/tone_blue_primary</item>
+        <item name="colorAccent">@color/tone_blue_primary</item>
+        <item name="android:colorAccent">@color/tone_blue_primary</item>
+    </style>
+
+    <style name="ThemeOverlay.DirtyFrag.Tone.Purple" parent="">
+        <item name="accentInk">@color/tone_purple_ink</item>
+        <item name="accentFill">@color/tone_purple_fill</item>
+        <item name="accentOn">@color/tone_purple_on_fill</item>
+        <item name="accentContainer">@color/tone_purple_container</item>
+        <item name="accentSolid">@color/tone_purple_solid</item>
+        <item name="colorPrimary">@color/tone_purple_primary</item>
+        <item name="colorOnPrimary">@color/tone_purple_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tone_purple_container</item>
+        <item name="colorOnPrimaryContainer">@color/tone_purple_ink</item>
+        <item name="colorSecondary">@color/tone_purple_primary</item>
+        <item name="colorOnSecondary">@color/tone_purple_on_primary</item>
+        <item name="colorSecondaryContainer">@color/tone_purple_container</item>
+        <item name="colorOnSecondaryContainer">@color/tone_purple_ink</item>
+        <item name="colorControlActivated">@color/tone_purple_primary</item>
+        <item name="colorAccent">@color/tone_purple_primary</item>
+        <item name="android:colorAccent">@color/tone_purple_primary</item>
+    </style>
+
+    <style name="ThemeOverlay.DirtyFrag.Tone.Amber" parent="">
+        <item name="accentInk">@color/tone_amber_ink</item>
+        <item name="accentFill">@color/tone_amber_fill</item>
+        <item name="accentOn">@color/tone_amber_on_fill</item>
+        <item name="accentContainer">@color/tone_amber_container</item>
+        <item name="accentSolid">@color/tone_amber_solid</item>
+        <item name="colorPrimary">@color/tone_amber_primary</item>
+        <item name="colorOnPrimary">@color/tone_amber_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tone_amber_container</item>
+        <item name="colorOnPrimaryContainer">@color/tone_amber_ink</item>
+        <item name="colorSecondary">@color/tone_amber_primary</item>
+        <item name="colorOnSecondary">@color/tone_amber_on_primary</item>
+        <item name="colorSecondaryContainer">@color/tone_amber_container</item>
+        <item name="colorOnSecondaryContainer">@color/tone_amber_ink</item>
+        <item name="colorControlActivated">@color/tone_amber_primary</item>
+        <item name="colorAccent">@color/tone_amber_primary</item>
+        <item name="android:colorAccent">@color/tone_amber_primary</item>
     </style>
 </resources>

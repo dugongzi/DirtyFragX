@@ -12,9 +12,6 @@
     <color name="surface_4">#FFE0E0E0</color>
     <color name="settings_card">#FFFFFFFF</color>
     <color name="status_inactive">#FF5F6B7A</color>
-    <color name="status_ready">#FF4A5568</color>
-    <!-- Dark teal in both themes: the status card always uses white content. -->
-    <color name="status_running">#FF2F6F73</color>
     <color name="info_border">#FF9E9E9E</color>
     <color name="section_title">#FF757575</color>
     <color name="accent_cyan">#FF98D2D5</color>
@@ -29,16 +26,59 @@
     <color name="accent_purple">#FFA78BFA</color>
     <color name="accent_pink">#FFF472B6</color>
     <color name="muted_cyan">#FFE6F3F4</color>
+
+    <!-- Accent tones (light). ink = text/icons, fill = solid surfaces,
+         on_fill = content on fill, container = subtle background. -->
+    <color name="tone_teal_ink">#FF2F6F73</color>
+    <color name="tone_teal_fill">#FF98D2D5</color>
+    <color name="tone_teal_on_fill">#FF10262A</color>
+    <color name="tone_teal_container">#FFE6F3F4</color>
+    <color name="tone_teal_primary">#FF2F6F73</color>
+    <color name="tone_teal_on_primary">#FFFFFFFF</color>
+    <color name="tone_teal_solid">#FF2F6F73</color>
+
+    <color name="tone_blue_ink">#FF2563EB</color>
+    <color name="tone_blue_fill">#FF93C5FD</color>
+    <color name="tone_blue_on_fill">#FF0B1B3A</color>
+    <color name="tone_blue_container">#FFE8F0FE</color>
+    <color name="tone_blue_primary">#FF2563EB</color>
+    <color name="tone_blue_on_primary">#FFFFFFFF</color>
+    <color name="tone_blue_solid">#FF2563EB</color>
+
+    <color name="tone_purple_ink">#FF6D28D9</color>
+    <color name="tone_purple_fill">#FFC4B5FD</color>
+    <color name="tone_purple_on_fill">#FF22103F</color>
+    <color name="tone_purple_container">#FFF1EBFE</color>
+    <color name="tone_purple_primary">#FF6D28D9</color>
+    <color name="tone_purple_on_primary">#FFFFFFFF</color>
+    <color name="tone_purple_solid">#FF6D28D9</color>
+
+    <color name="tone_amber_ink">#FFB45309</color>
+    <color name="tone_amber_fill">#FFFCD34D</color>
+    <color name="tone_amber_on_fill">#FF2B1A02</color>
+    <color name="tone_amber_container">#FFFEF3D7</color>
+    <color name="tone_amber_primary">#FFB45309</color>
+    <color name="tone_amber_on_primary">#FFFFFFFF</color>
+    <color name="tone_amber_solid">#FFB45309</color>
+
     <color name="muted_emerald">#FFD1FAE5</color>
     <color name="muted_amber">#FFFEF3C7</color>
     <color name="muted_blue">#FFDBEAFE</color>
     <color name="success">#FF10B981</color>
     <color name="warning">#FFF59E0B</color>
     <color name="error">#FFEF4444</color>
+    <!-- Status card: active (ready/rooted) is green, blocked/failed is red. -->
+    <color name="status_active_container">#FFE7F6EC</color>
+    <color name="status_active_ink">#FF1B7A3D</color>
+    <color name="status_error_container">#FFFDECEC</color>
+    <color name="status_error_ink">#FFB3261E</color>
     <color name="text_primary">#FF333333</color>
     <color name="text_secondary">#FF666666</color>
     <color name="text_tertiary">#FF999999</color>
     <color name="line_subtle">#FFE0E0E0</color>
+    <!-- Off-state switch: white knob on a clearly darker track. -->
+    <color name="switch_track_off">#FFC9D1D4</color>
+    <color name="switch_thumb_off">#FFFFFFFF</color>
     <color name="log_text">@color/text_secondary</color>
     <color name="nav_item_tint">#99666666</color>
 </resources>

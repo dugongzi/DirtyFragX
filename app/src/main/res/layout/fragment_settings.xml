@@ -10,7 +10,9 @@
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:clipToPadding="false"
         android:fillViewport="true"
+        android:scrollbars="none"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -20,280 +22,43 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingStart="20dp"
+            android:paddingTop="24dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="32dp">
+
+            <!-- Page header -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/settings"
+                android:textColor="@color/text_primary"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="24dp"
+                android:text="@string/settings_desc"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
             <!-- Run Behavior Section -->
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/SectionTitle"
+                android:layout_marginStart="4dp"
                 android:layout_marginBottom="8dp"
                 android:text="@string/run_behavior"
-                android:textColor="@color/accent_ink"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textColor="?attr/accentInk" />
 
-            <!-- KernelSU Module -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="20dp"
                 app:cardBackgroundColor="@color/settings_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/bg_settings_icon"
-                        android:contentDescription="@null"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_module" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/modulesTitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/ksu_modules"
-                            android:textColor="@color/text_primary"
-                            android:textSize="15sp" />
-
-                        <TextView
-                            android:id="@+id/modulesSubtitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/modules_enabled"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="13sp" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchModules"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Expert Mode -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/settings_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/bg_settings_icon"
-                        android:contentDescription="@null"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_expert" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/expertModeLabel"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/expert_mode"
-                            android:textColor="@color/text_primary"
-                            android:textSize="15sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/expert_mode_desc"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="13sp" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchExpertMode"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Auto Run on Boot -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardAutorun"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/settings_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/bg_settings_icon"
-                        android:contentDescription="@null"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_autorun" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tvAutorunTitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/autorun"
-                            android:textColor="@color/text_primary"
-                            android:textSize="15sp" />
-
-                        <TextView
-                            android:id="@+id/tvAutorunDesc"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/autorun_desc"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="13sp" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchBootStart"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Auto Soft Reboot -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardAutoReboot"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="@color/settings_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/bg_settings_icon"
-                        android:contentDescription="@null"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_reboot" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tvRebootTitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/auto_reboot"
-                            android:textColor="@color/text_primary"
-                            android:textSize="15sp" />
-
-                        <TextView
-                            android:id="@+id/tvRebootDesc"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/auto_reboot_desc"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="13sp" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchAutoSoftReboot"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Appearance Section -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="@string/appearance"
-                android:textColor="@color/accent_ink"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <!-- Theme -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/settings_card"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp">
 
@@ -301,14 +66,210 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:paddingStart="16dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="4dp">
 
+                    <!-- KernelSU Module -->
+                    <LinearLayout style="@style/SettingsRow">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_module" />
+
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                android:id="@+id/modulesTitle"
+                                style="@style/RowTitle"
+                                android:text="@string/ksu_modules" />
+
+                            <TextView
+                                android:id="@+id/modulesSubtitle"
+                                style="@style/RowSubtitle"
+                                android:text="@string/modules_enabled" />
+
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchModules"
+                            style="@style/SettingsSwitch" />
+
+                    </LinearLayout>
+
+                    <View
+                        style="@style/SectionDivider"
+                        android:layout_marginStart="48dp"
+                        android:layout_marginTop="0dp"
+                        android:layout_marginBottom="0dp" />
+
+                    <!-- Expert Mode -->
+                    <LinearLayout style="@style/SettingsRow">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_expert" />
+
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                android:id="@+id/expertModeLabel"
+                                style="@style/RowTitle"
+                                android:text="@string/expert_mode" />
+
+                            <TextView
+                                style="@style/RowSubtitle"
+                                android:text="@string/expert_mode_desc" />
+
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchExpertMode"
+                            style="@style/SettingsSwitch" />
+
+                    </LinearLayout>
+
+                    <!-- Auto Run on Boot (expert mode only) -->
                     <LinearLayout
+                        android:id="@+id/cardAutorun"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <View
+                            style="@style/SectionDivider"
+                            android:layout_marginStart="48dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_marginBottom="0dp" />
+
+                        <LinearLayout style="@style/SettingsRow">
+
+                            <ImageView
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="@drawable/bg_settings_icon"
+                                android:contentDescription="@null"
+                                android:padding="8dp"
+                                android:src="@drawable/ic_autorun" />
+
+                            <LinearLayout
+                                style="@style/RowText"
+                                android:layout_marginStart="12dp">
+
+                                <TextView
+                                    android:id="@+id/tvAutorunTitle"
+                                    style="@style/RowTitle"
+                                    android:text="@string/autorun" />
+
+                                <TextView
+                                    android:id="@+id/tvAutorunDesc"
+                                    style="@style/RowSubtitle"
+                                    android:text="@string/autorun_desc" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switchBootStart"
+                                style="@style/SettingsSwitch" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- Auto Soft Reboot (expert mode only) -->
+                    <LinearLayout
+                        android:id="@+id/cardAutoReboot"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <View
+                            style="@style/SectionDivider"
+                            android:layout_marginStart="48dp"
+                            android:layout_marginTop="0dp"
+                            android:layout_marginBottom="0dp" />
+
+                        <LinearLayout style="@style/SettingsRow">
+
+                            <ImageView
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="@drawable/bg_settings_icon"
+                                android:contentDescription="@null"
+                                android:padding="8dp"
+                                android:src="@drawable/ic_reboot" />
+
+                            <LinearLayout
+                                style="@style/RowText"
+                                android:layout_marginStart="12dp">
+
+                                <TextView
+                                    android:id="@+id/tvRebootTitle"
+                                    style="@style/RowTitle"
+                                    android:text="@string/auto_reboot" />
+
+                                <TextView
+                                    android:id="@+id/tvRebootDesc"
+                                    style="@style/RowSubtitle"
+                                    android:text="@string/auto_reboot_desc" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switchAutoSoftReboot"
+                                style="@style/SettingsSwitch" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Appearance Section -->
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/appearance"
+                android:textColor="?attr/accentInk" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/settings_card"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp">
+
+                    <!-- Theme -->
+                    <LinearLayout style="@style/SettingsRow">
 
                         <ImageView
                             android:layout_width="36dp"
@@ -319,26 +280,16 @@
                             android:src="@drawable/ic_theme" />
 
                         <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
 
                             <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/theme"
-                                android:textColor="@color/text_primary"
-                                android:textSize="15sp" />
+                                style="@style/RowTitle"
+                                android:text="@string/theme" />
 
                             <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/theme_desc"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="13sp" />
+                                style="@style/RowSubtitle"
+                                android:text="@string/theme_desc" />
 
                         </LinearLayout>
 
@@ -353,50 +304,98 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/themeLight"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/theme_light"
-                            app:cornerRadius="12dp" />
+                            style="@style/SettingsSegmentButton"
+                            android:text="@string/theme_light" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/themeDark"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/theme_dark"
-                            app:cornerRadius="12dp" />
+                            style="@style/SettingsSegmentButton"
+                            android:text="@string/theme_dark" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
-                </LinearLayout>
+                    <View
+                        style="@style/SectionDivider"
+                        android:layout_marginStart="48dp" />
 
-            </com.google.android.material.card.MaterialCardView>
+                    <!-- Accent tone -->
+                    <LinearLayout style="@style/SettingsRow">
 
-            <!-- Language -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="@color/settings_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_palette" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
 
-                    <LinearLayout
+                            <TextView
+                                style="@style/RowTitle"
+                                android:text="@string/tone" />
+
+                            <TextView
+                                style="@style/RowSubtitle"
+                                android:text="@string/tone_desc" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toneSelector"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/toneTeal"
+                            style="@style/SettingsSegmentButton"
+                            app:icon="@drawable/bg_tone_swatch"
+                            app:iconGravity="textStart"
+                            app:iconPadding="0dp"
+                            app:iconSize="18dp"
+                            app:iconTint="@color/tone_teal_fill" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/toneBlue"
+                            style="@style/SettingsSegmentButton"
+                            app:icon="@drawable/bg_tone_swatch"
+                            app:iconGravity="textStart"
+                            app:iconPadding="0dp"
+                            app:iconSize="18dp"
+                            app:iconTint="@color/tone_blue_fill" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/tonePurple"
+                            style="@style/SettingsSegmentButton"
+                            app:icon="@drawable/bg_tone_swatch"
+                            app:iconGravity="textStart"
+                            app:iconPadding="0dp"
+                            app:iconSize="18dp"
+                            app:iconTint="@color/tone_purple_fill" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/toneAmber"
+                            style="@style/SettingsSegmentButton"
+                            app:icon="@drawable/bg_tone_swatch"
+                            app:iconGravity="textStart"
+                            app:iconPadding="0dp"
+                            app:iconSize="18dp"
+                            app:iconTint="@color/tone_amber_fill" />
+
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <View
+                        style="@style/SectionDivider"
+                        android:layout_marginStart="48dp" />
+
+                    <!-- Language -->
+                    <LinearLayout style="@style/SettingsRow">
 
                         <ImageView
                             android:layout_width="36dp"
@@ -407,26 +406,16 @@
                             android:src="@drawable/ic_language" />
 
                         <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
 
                             <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/language"
-                                android:textColor="@color/text_primary"
-                                android:textSize="15sp" />
+                                style="@style/RowTitle"
+                                android:text="@string/language" />
 
                             <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/language_desc"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="13sp" />
+                                style="@style/RowSubtitle"
+                                android:text="@string/language_desc" />
 
                         </LinearLayout>
 
@@ -441,21 +430,13 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/languageZh"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/language_chinese"
-                            app:cornerRadius="12dp" />
+                            style="@style/SettingsSegmentButton"
+                            android:text="@string/language_chinese" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/languageEn"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/language_english"
-                            app:cornerRadius="12dp" />
+                            style="@style/SettingsSegmentButton"
+                            android:text="@string/language_english" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -465,20 +446,18 @@
 
             <!-- About Section -->
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/SectionTitle"
+                android:layout_marginStart="4dp"
                 android:layout_marginBottom="8dp"
                 android:text="@string/about"
-                android:textColor="@color/accent_ink"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textColor="?attr/accentInk" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="8dp"
                 app:cardBackgroundColor="@color/settings_card"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp">
 
@@ -486,52 +465,104 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:paddingStart="16dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="4dp">
 
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginBottom="12dp"
-                        android:background="@drawable/bg_settings_icon"
-                        android:contentDescription="@null"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_github" />
+                    <LinearLayout
+                        android:id="@+id/rowFork"
+                        style="@style/SettingsRow"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp">
 
-                    <TextView
-                        android:id="@+id/repoForkLabel"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/repo_fork"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_github" />
 
-                    <TextView
-                        android:id="@+id/repoForkUrl"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/repo_fork_url"
-                        android:textColor="@color/accent_ink"
-                        android:textSize="13sp" />
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
 
-                    <TextView
-                        android:id="@+id/repoOriginalLabel"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:text="@string/repo_original"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp" />
+                            <TextView
+                                android:id="@+id/repoForkLabel"
+                                style="@style/RowTitle"
+                                android:text="@string/repo_fork" />
 
-                    <TextView
-                        android:id="@+id/repoOriginalUrl"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/repo_original_url"
-                        android:textColor="@color/text_tertiary"
-                        android:textSize="12sp" />
+                            <TextView
+                                android:id="@+id/repoForkUrl"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/repo_fork_url"
+                                android:textColor="?attr/accentInk"
+                                android:textSize="12sp" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="20sp" />
+
+                    </LinearLayout>
+
+                    <View
+                        style="@style/SectionDivider"
+                        android:layout_marginStart="48dp"
+                        android:layout_marginTop="0dp"
+                        android:layout_marginBottom="0dp" />
+
+                    <LinearLayout
+                        android:id="@+id/rowOriginal"
+                        style="@style/SettingsRow"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_github" />
+
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                android:id="@+id/repoOriginalLabel"
+                                style="@style/RowTitle"
+                                android:text="@string/repo_original" />
+
+                            <TextView
+                                android:id="@+id/repoOriginalUrl"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/repo_original_url"
+                                android:textColor="@color/text_tertiary"
+                                android:textSize="12sp" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="20sp" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 

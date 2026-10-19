@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Accent colors resolved from the selected tone overlay. -->
+    <attr name="accentInk" format="color" />
+    <attr name="accentFill" format="color" />
+    <attr name="accentOn" format="color" />
+    <attr name="accentContainer" format="color" />
+    <attr name="accentSolid" format="color" />
+</resources>

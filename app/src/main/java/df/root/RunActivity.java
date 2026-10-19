@@ -72,6 +72,7 @@ public class RunActivity extends AppCompatActivity implements IReporter {
     protected void onCreate(Bundle savedInstanceState) {
         applyTheme();
         super.onCreate(savedInstanceState);
+        applyAccentTone();
         mDeCtx = createDeviceProtectedStorageContext();
         setContentView(R.layout.activity_run);
         logView = findViewById(R.id.logView);
@@ -100,6 +101,21 @@ public class RunActivity extends AppCompatActivity implements IReporter {
                 prefs.getBoolean("dark_mode", false)
                         ? androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
                         : androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
+    }
+
+    /** Same accent overlay as MainActivity so the run screen follows the tone. */
+    private void applyAccentTone() {
+        String tone = createDeviceProtectedStorageContext()
+                .getSharedPreferences("dfroot", MODE_PRIVATE)
+                .getString("accent_tone", "teal");
+        int overlay;
+        switch (tone) {
+            case "blue": overlay = R.style.ThemeOverlay_DirtyFrag_Tone_Blue; break;
+            case "purple": overlay = R.style.ThemeOverlay_DirtyFrag_Tone_Purple; break;
+            case "amber": overlay = R.style.ThemeOverlay_DirtyFrag_Tone_Amber; break;
+            default: overlay = R.style.ThemeOverlay_DirtyFrag_Tone_Teal; break;
+        }
+        getTheme().applyStyle(overlay, true);
     }
 
     /** Shows the log from the previous run, unless it belongs to an older boot. */

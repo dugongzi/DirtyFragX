@@ -4,7 +4,7 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24"
-    android:tint="@color/accent_ink">
+    android:tint="?attr/accentInk">
     <path
         android:fillColor="#FFFFFFFF"
         android:pathData="M4,4h16c1.1,0 2,0.9 2,2v12c0,1.1 -0.9,2 -2,2H4c-1.1,0 -2,-0.9 -2,-2V6c0,-1.1 0.9,-2 2,-2zM5,8v2h9V8H5zM5,12v2h14v-2H5zM5,16v2h6v-2H5z" />

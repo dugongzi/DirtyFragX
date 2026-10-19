@@ -1,11 +1,12 @@
 <resources>
     <string name="app_name">DirtyFragX</string>
     <string name="settings">Settings</string>
+    <string name="settings_desc">Tune how the exploit runs and how the app looks</string>
     <string name="appearance">Appearance</string>
     <string name="dark_mode">Dark Mode</string>
     <string name="dark_mode_desc">Enable dark theme</string>
     <string name="language">Language</string>
-    <string name="console_name">DITRYFRAGX</string>
+    <string name="console_name">DIRTYFRAGX</string>
     <string name="home">Home</string>
     <string name="back">Back</string>
     <string name="run_title">Run</string>
@@ -53,6 +54,8 @@
     <string name="theme_desc">Pick the app color scheme</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="tone">Accent tone</string>
+    <string name="tone_desc">Color used for buttons, icons and highlights</string>
     <string name="language_desc">Switch the app display language</string>
     <string name="language_chinese">简体中文</string>
     <string name="language_english">English</string>

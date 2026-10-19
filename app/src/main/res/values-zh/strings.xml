@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">DirtyFragX</string>
     <string name="settings">设置</string>
+    <string name="settings_desc">调整运行行为与应用外观</string>
     <string name="appearance">外观</string>
     <string name="dark_mode">深色模式</string>
     <string name="dark_mode_desc">启用深色主题</string>
@@ -53,6 +54,8 @@
     <string name="theme_desc">选择应用的配色方案</string>
     <string name="theme_light">浅色</string>
     <string name="theme_dark">深色</string>
+    <string name="tone">色调</string>
+    <string name="tone_desc">应用于按钮、图标与高亮元素的强调色</string>
     <string name="language_desc">切换应用的显示语言</string>
     <string name="language_chinese">简体中文</string>
     <string name="language_english">English</string>

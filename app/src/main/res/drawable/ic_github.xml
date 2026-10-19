@@ -4,7 +4,7 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24"
-    android:tint="@color/accent_ink">
+    android:tint="?attr/accentInk">
     <!-- GitHub mark (official 16-unit outline scaled to the 24-unit viewport). -->
     <path
         android:fillColor="#FFFFFFFF"

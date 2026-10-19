@@ -130,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         applyThemeAndLanguage();
         super.onCreate(savedInstanceState);
+        applyAccentTone();
         mDeCtx = createDeviceProtectedStorageContext();
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -210,11 +211,6 @@ public class MainActivity extends AppCompatActivity {
                 binding.viewPager.setCurrentItem(1, true);
                 selectedNav = R.id.nav_settings;
                 return true;
-            } else if (item.getItemId() == R.id.nav_run_placeholder) {
-                // Centre slot: opens the dedicated run screen and starts the
-                // run; the bar selection itself does not move.
-                openRun(true);
-                return false;
             }
             return false;
         });
@@ -238,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        View run = binding.btnRun;
+        View run = home(R.id.btnRun);
         if (run != null) {
             // The button opens the dedicated run screen and starts immediately;
             // once rooted it only opens the saved log.
@@ -417,13 +413,15 @@ public class MainActivity extends AppCompatActivity {
         setupAppearanceSelectors();
 
         View[] links = {
-                settings(R.id.repoOriginalLabel), settings(R.id.repoOriginalUrl)};
+                settings(R.id.rowOriginal), settings(R.id.repoOriginalLabel),
+                settings(R.id.repoOriginalUrl)};
         for (View link : links) {
             if (link != null) link.setOnClickListener(v ->
                     openUrl(getString(R.string.repo_original_url)));
         }
         View[] fork = {
-                settings(R.id.repoForkLabel), settings(R.id.repoForkUrl)};
+                settings(R.id.rowFork), settings(R.id.repoForkLabel),
+                settings(R.id.repoForkUrl)};
         for (View link : fork) {
             if (link != null) link.setOnClickListener(v ->
                     openUrl(getString(R.string.repo_fork_url)));
@@ -695,7 +693,7 @@ public class MainActivity extends AppCompatActivity {
             mark.setClickable(false);
             mark.setFocusable(false);
             mark.setButtonTintList(android.content.res.ColorStateList.valueOf(
-                    getColor(R.color.accent_ink)));
+                    resolveThemeColor(R.attr.accentInk)));
             row.addView(mark);
 
             final int index = i;
@@ -792,16 +790,19 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         boolean ok = suManagerPkg != null;
-        View run = binding.btnRun;
+        View run = home(R.id.btnRun);
         if (run != null) {
             run.setEnabled(ok);
             run.setAlpha(ok ? 1f : 0.4f);
         }
 
-        // 状态卡：待命 = 中性灰描边 + 播放图标，勾只留给真正取得 root
-        setStatusCard(ok ? R.color.status_ready : R.color.error,
-                ok ? R.drawable.ic_play : R.drawable.ic_error,
-                ok ? R.string.status_ready : R.string.status_needs_manager);
+        // 状态卡：激活为绿色，未激活沿用主题色
+        setStatusCard(ok ? R.drawable.ic_play : R.drawable.ic_error,
+                ok ? R.string.status_ready : R.string.status_needs_manager,
+                ok ? getColor(R.color.status_active_container)
+                        : resolveThemeColor(R.attr.accentContainer),
+                ok ? getColor(R.color.status_active_ink)
+                        : resolveThemeColor(R.attr.accentInk));
     }
 
     /** Soft reboot is only offered while root is up and nothing else runs. */
@@ -858,24 +859,33 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /** 状态卡配色/图标/文案，与 JSXposed 的 ActivationCard 规则一致：
-     *  激活为主色实底白字，未激活/运行中为灰色实底白字，失败为红色实底白字。 */
-    private void setStatusCard(int colorRes, int iconRes, int labelRes) {
-        android.widget.ImageView icon = home(R.id.statusIcon);
-        TextView label = home(R.id.statusLabel);
+    /** 状态卡的图标/文案/配色随状态变化。 */
+    private void setStatusCard(int iconRes, int labelRes, int bgColor, int inkColor) {
         com.google.android.material.card.MaterialCardView card = home(R.id.statusCard);
-        if (card != null) card.setCardBackgroundColor(getColor(colorRes));
-        if (icon != null) icon.setImageResource(iconRes);
-        if (label != null) label.setText(labelRes);
+        android.widget.ImageView icon = home(R.id.statusIcon);
+        TextView caption = home(R.id.statusCaption);
+        TextView label = home(R.id.statusLabel);
+        if (card != null) card.setCardBackgroundColor(bgColor);
+        if (icon != null) {
+            icon.setImageResource(iconRes);
+            icon.setImageTintList(android.content.res.ColorStateList.valueOf(inkColor));
+        }
+        if (caption != null) caption.setTextColor(inkColor);
+        if (label != null) {
+            label.setText(labelRes);
+            label.setTextColor(inkColor);
+        }
     }
 
-    /** Failure presentation: the status card turns red. The run button stays
-     *  enabled - retrying is allowed. */
+    /** Failure presentation: the status card turns red. The run button
+     *  stays enabled - retrying is allowed. */
     private void setFailedState() {
         failedRun = true;
-        setStatusCard(R.color.error, R.drawable.ic_error, R.string.failure);
+        setStatusCard(R.drawable.ic_error, R.string.failure,
+                getColor(R.color.status_error_container),
+                getColor(R.color.status_error_ink));
 
-        View run = binding.btnRun;
+        View run = home(R.id.btnRun);
         if (run != null) {
             boolean ok = canRun();
             run.setEnabled(ok);
@@ -888,13 +898,13 @@ public class MainActivity extends AppCompatActivity {
         updateSoftRebootButton();
         // Not rooted does not mean runnable: the manager still has to be picked.
         boolean ok = !rooted && canRun();
-        int runnableColor = ok ? R.color.status_ready : R.color.error;
+        boolean active = rooted || ok;
         // A previous failed run must not mask a successful one.
         if (failedRun && !rooted) {
             setFailedState();
             return;
         }
-        View run = binding.btnRun;
+        View run = home(R.id.btnRun);
         if (run != null) {
             // Rooted: the button stays clickable but only opens the saved log.
             boolean enabled = rooted || ok;
@@ -902,11 +912,14 @@ public class MainActivity extends AppCompatActivity {
             run.setAlpha(enabled ? 1f : 0.4f);
         }
 
-        setStatusCard(rooted ? R.color.status_running : runnableColor,
-                rooted ? R.drawable.ic_check
+        setStatusCard(rooted ? R.drawable.ic_check
                         : ok ? R.drawable.ic_play : R.drawable.ic_error,
                 rooted ? R.string.rooted
-                        : ok ? R.string.status_ready : R.string.status_needs_manager);
+                        : ok ? R.string.status_ready : R.string.status_needs_manager,
+                active ? getColor(R.color.status_active_container)
+                        : resolveThemeColor(R.attr.accentContainer),
+                active ? getColor(R.color.status_active_ink)
+                        : resolveThemeColor(R.attr.accentInk));
     }
 
     /** Opens the SU manager that is actually selected - pre-3.2 this walked a
@@ -943,12 +956,55 @@ public class MainActivity extends AppCompatActivity {
                         : androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
     }
 
+    /** Overlays the chosen accent tone on the base theme. Must run after
+     *  super.onCreate and before setContentView so every ?attr/accent*
+     *  reference in the inflated layouts and drawables resolves to it. */
+    private void applyAccentTone() {
+        String tone = createDeviceProtectedStorageContext()
+                .getSharedPreferences("dfroot", MODE_PRIVATE)
+                .getString("accent_tone", "teal");
+        getTheme().applyStyle(toneOverlay(tone), true);
+    }
+
+    private static int toneOverlay(String tone) {
+        switch (tone) {
+            case "blue": return R.style.ThemeOverlay_DirtyFrag_Tone_Blue;
+            case "purple": return R.style.ThemeOverlay_DirtyFrag_Tone_Purple;
+            case "amber": return R.style.ThemeOverlay_DirtyFrag_Tone_Amber;
+            default: return R.style.ThemeOverlay_DirtyFrag_Tone_Teal;
+        }
+    }
+
+    private static int toneButton(String tone) {
+        switch (tone) {
+            case "blue": return R.id.toneBlue;
+            case "purple": return R.id.tonePurple;
+            case "amber": return R.id.toneAmber;
+            default: return R.id.toneTeal;
+        }
+    }
+
+    private static String toneValue(int buttonId) {
+        if (buttonId == R.id.toneBlue) return "blue";
+        if (buttonId == R.id.tonePurple) return "purple";
+        if (buttonId == R.id.toneAmber) return "amber";
+        return "teal";
+    }
+
+    private int resolveThemeColor(int attr) {
+        android.util.TypedValue value = new android.util.TypedValue();
+        getTheme().resolveAttribute(attr, value, true);
+        return value.data;
+    }
+
     private void setupAppearanceSelectors() {
         SharedPreferences prefs = mDeCtx.getSharedPreferences("dfroot", MODE_PRIVATE);
         com.google.android.material.button.MaterialButtonToggleGroup theme =
                 settings(R.id.themeSelector);
         com.google.android.material.button.MaterialButtonToggleGroup language =
                 settings(R.id.languageSelector);
+        com.google.android.material.button.MaterialButtonToggleGroup tone =
+                settings(R.id.toneSelector);
         if (theme == null || language == null) return;
         theme.check(prefs.getBoolean("dark_mode", false)
                 ? R.id.themeDark : R.id.themeLight);
@@ -968,10 +1024,21 @@ public class MainActivity extends AppCompatActivity {
             prefs.edit().putString("language", lang).apply();
             recreate();
         });
+        if (tone == null) return;
+        tone.check(toneButton(prefs.getString("accent_tone", "teal")));
+        tone.addOnButtonCheckedListener((group, id, checked) -> {
+            if (!checked || running) return;
+            String value = toneValue(id);
+            if (value.equals(prefs.getString("accent_tone", "teal"))) return;
+            prefs.edit().putString("accent_tone", value).apply();
+            recreate();
+        });
     }
 
     private void setAppearanceSelectorsEnabled(boolean enabled) {
         int[] ids = {R.id.themeSelector, R.id.themeLight, R.id.themeDark,
+                R.id.toneSelector, R.id.toneTeal, R.id.toneBlue,
+                R.id.tonePurple, R.id.toneAmber,
                 R.id.languageSelector, R.id.languageZh, R.id.languageEn};
         for (int id : ids) {
             View v = settings(id);

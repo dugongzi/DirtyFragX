@@ -1,7 +1,7 @@
 <resources>
     <style name="Theme.DirtyFrag" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="android:fontFamily">@font/inter</item>
-        <item name="fontFamily">@font/inter</item>
+        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
+        <item name="fontFamily">@font/alimama_fang_yuan</item>
         <item name="android:windowBackground">@color/app_bg</item>
         <item name="android:statusBarColor">@color/app_bg</item>
         <item name="android:navigationBarColor">@color/app_bg</item>
@@ -15,10 +15,10 @@
         <item name="colorOutline">@color/surface_3</item>
         <item name="colorControlHighlight">#1FFFFFFF</item>
         <item name="android:colorBackground">@color/app_bg</item>
-        <item name="colorPrimary">@color/accent_cyan</item>
-        <item name="colorOnPrimary">@color/on_accent</item>
-        <item name="colorPrimaryContainer">@color/muted_cyan</item>
-        <item name="colorOnPrimaryContainer">@color/accent_ink</item>
+        <item name="colorPrimary">@color/tone_teal_primary</item>
+        <item name="colorOnPrimary">@color/tone_teal_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tone_teal_container</item>
+        <item name="colorOnPrimaryContainer">@color/tone_teal_ink</item>
         <item name="colorSecondary">@color/accent_emerald</item>
         <item name="colorOnSecondary">@color/surface_0</item>
         <item name="colorSecondaryContainer">@color/muted_emerald</item>
@@ -35,9 +35,17 @@
         <item name="colorOnBackground">@color/text_primary</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="colorOnSurfaceVariant">@color/text_secondary</item>
-        <item name="colorControlActivated">@color/accent_cyan</item>
-        <item name="colorAccent">@color/accent_cyan</item>
-        <item name="android:colorAccent">@color/accent_cyan</item>
+        <!-- Keep card backgrounds pure dark; elevation only drives the shadow. -->
+        <item name="elevationOverlayEnabled">false</item>
+        <!-- Accent tone tokens (overridden by ThemeOverlay.DirtyFrag.Tone.*) -->
+        <item name="accentInk">@color/tone_teal_ink</item>
+        <item name="accentFill">@color/tone_teal_fill</item>
+        <item name="accentOn">@color/tone_teal_on_fill</item>
+        <item name="accentContainer">@color/tone_teal_container</item>
+        <item name="accentSolid">@color/tone_teal_solid</item>
+        <item name="colorControlActivated">@color/tone_teal_primary</item>
+        <item name="colorAccent">@color/tone_teal_primary</item>
+        <item name="android:colorAccent">@color/tone_teal_primary</item>
         <item name="android:textColorHighlight">#4D9E9E9E</item>
         <item name="android:windowSplashScreenBackground">@color/app_bg</item>
         <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
@@ -57,8 +65,8 @@
         <item name="android:gravity">center</item>
     </style>
     <style name="ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
-        <item name="android:fontFamily">@font/inter</item>
-        <item name="fontFamily">@font/inter</item>
+        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
+        <item name="fontFamily">@font/alimama_fang_yuan</item>
         <item name="android:textFontWeight">700</item>
         <item name="android:textSize">24sp</item>
         <item name="android:textStyle">bold</item>
