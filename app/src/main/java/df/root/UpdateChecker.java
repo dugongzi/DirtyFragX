@@ -1,23 +1,31 @@
 package df.root;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
 import android.util.Log;
-import android.widget.LinearLayout;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 
 import org.json.JSONArray;
@@ -42,7 +50,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -100,16 +107,13 @@ final class UpdateChecker {
     private volatile boolean cancelled;
     private volatile boolean manualChecking;
 
-    private AlertDialog updateDialog;
-    private AlertDialog noticeDialog;
-    /** An update that arrived while the announcement was on screen. */
-    private Release pendingUpdate;
-    /** The update currently on screen, so the announcement can take over and
-     *  restore it once acknowledged. */
-    private Release showingUpdate;
-    private AlertDialog progressDialog;
-    private ProgressBar progressBar;
-    private TextView progressText;
+    private Dialog updateDialog;
+    private Dialog noticeDialog;
+    /** The announcement currently on screen, so an update can take over and
+     *  put it back once the update dialog is gone. */
+    private Notice showingNotice;
+    /** An announcement waiting for the update prompt or download to finish. */
+    private Notice pendingNotice;
 
     UpdateChecker(Activity activity) {
         this.activity = activity;
@@ -141,51 +145,22 @@ final class UpdateChecker {
         });
     }
 
-    /** Fetches the announcement from every mirror on each launch. The last
-     *  copy is shown from cache immediately, so a slow or blocked mirror can
-     *  no longer hide the announcement; the first fresh copy replaces it in
-     *  place once a source answers. */
+    /** Fetches the announcement from every mirror on each launch. Nothing is
+     *  cached locally: the first mirror that answers with a notice wins and
+     *  the dialog appears right then. */
     void checkAnnouncement() {
-        SharedPreferences sp = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        Notice cached = cachedNotice(sp);
-        if (cached != null) showNotice(cached);
-
         final AtomicBoolean applied = new AtomicBoolean(false);
-        final AtomicInteger gone = new AtomicInteger();
         for (String url : NOTICE_SOURCES) {
             try {
                 noticeNet.execute(() -> {
                     Notice n = fetchNotice(url);
-                    if (n == NO_NOTICE) {
-                        // Only trust "no notice" once every mirror agrees, so
-                        // one lagging mirror cannot wipe a valid announcement.
-                        if (gone.incrementAndGet() == NOTICE_SOURCES.length) {
-                            sp.edit().remove("notice_title")
-                                    .remove("notice_content").apply();
-                        }
-                        return;
-                    }
-                    if (n == null) return;
-                    if (applied.compareAndSet(false, true)) {
-                        sp.edit().putString("notice_title", n.title)
-                                .putString("notice_content", n.content).apply();
-                        showNotice(n);
-                    }
+                    if (n == null || n == NO_NOTICE) return;
+                    if (applied.compareAndSet(false, true)) showNotice(n);
                 });
             } catch (RejectedExecutionException e) {
                 // cancel() shut the pool down while the check was starting.
             }
         }
-    }
-
-    private Notice cachedNotice(SharedPreferences sp) {
-        String content = sp.getString("notice_content", null);
-        if (content == null || content.trim().isEmpty()) return null;
-        String title = sp.getString("notice_title", null);
-        if (title == null || title.trim().isEmpty()) {
-            title = activity.getString(R.string.notice_title);
-        }
-        return new Notice(title, content);
     }
 
     /** Manual check from Settings → About. Unlike the startup check this
@@ -239,7 +214,8 @@ final class UpdateChecker {
                 noticeDialog.dismiss();
                 noticeDialog = null;
             }
-            dismissProgress();
+            pendingNotice = null;
+            showingNotice = null;
         });
     }
 
@@ -364,66 +340,154 @@ final class UpdateChecker {
     private void showUpdateDialog(Release r) {
         main.post(() -> {
             if (isDead()) return;
+            if (updateDialog != null && updateDialog.isShowing()) return;
+            // The update prompt has priority over the announcement: take the
+            // screen from it and bring it back once this dialog is gone.
             if (noticeDialog != null) {
-                // The announcement owns the screen; bring this back afterwards.
-                pendingUpdate = r;
-                return;
+                pendingNotice = showingNotice;
+                showingNotice = null;
+                Dialog d = noticeDialog;
+                noticeDialog = null;
+                d.dismiss();
             }
-            if (updateDialog != null) return;
             String notes = r.notes == null ? "" : r.notes.trim();
             if (notes.length() > 600) notes = notes.substring(0, 600) + "…";
-            AlertDialog dialog = new AlertDialog.Builder(activity)
-                    .setTitle(activity.getString(R.string.update_available) + " · " + r.tag)
-                    .setMessage(notes)
-                    .setPositiveButton(R.string.update, (d, w) -> {
-                        if (r.apkUrl == null) openPage(r.pageUrl);
-                        else startDownload(r);
-                    })
-                    .setNegativeButton(R.string.update_later, null)
-                    .create();
+
+            View view = LayoutInflater.from(activity)
+                    .inflate(R.layout.dialog_update, null);
+            ((TextView) view.findViewById(R.id.updateTitle))
+                    .setText(R.string.update_available);
+            ((TextView) view.findViewById(R.id.updateVersion))
+                    .setText(r.tag == null ? "" : r.tag);
+            ((TextView) view.findViewById(R.id.updateNotes)).setText(notes);
+
+            Dialog dialog = new Dialog(activity);
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            dialog.setContentView(view);
+            dialog.setCancelable(true);
+            dialog.setCanceledOnTouchOutside(false);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                WindowManager.LayoutParams lp = window.getAttributes();
+                lp.dimAmount = 0.45f;
+                window.setAttributes(lp);
+            }
+            view.findViewById(R.id.updateLater)
+                    .setOnClickListener(v -> dialog.dismiss());
+            view.findViewById(R.id.updateNow).setOnClickListener(v -> {
+                if (r.apkUrl == null) {
+                    dialog.dismiss();
+                    openPage(r.pageUrl);
+                } else {
+                    // The progress lives inside this dialog: the notes and
+                    // buttons give way to the bar, and back is blocked until
+                    // the download finishes or fails.
+                    dialog.setCancelable(false);
+                    view.findViewById(R.id.updateButtons).setVisibility(View.GONE);
+                    view.findViewById(R.id.updateScroller).setVisibility(View.GONE);
+                    view.findViewById(R.id.updateProgressBox).setVisibility(View.VISIBLE);
+                    ((TextView) view.findViewById(R.id.updateProgressText))
+                            .setText(R.string.update_downloading);
+                    ProgressBar bar = view.findViewById(R.id.updateProgress);
+                    bar.setProgress(0);
+                    bar.setIndeterminate(true);
+                    startDownload(r);
+                }
+            });
             dialog.setOnDismissListener(d -> {
-                updateDialog = null;
-                showingUpdate = null;
+                if (updateDialog == dialog) updateDialog = null;
+                pumpDialogs();
             });
             dialog.show();
+            if (window != null) sizeDialog(window);
             updateDialog = dialog;
-            showingUpdate = r;
+            clampScrollHeight(view.findViewById(R.id.updateScroller));
+        });
+    }
+
+    /** Shows whatever is waiting once the higher-priority dialogs are gone.
+     *  Updates always go first; the announcement follows. */
+    private void pumpDialogs() {
+        main.post(() -> {
+            if (isDead()) return;
+            if (updateDialog != null || noticeDialog != null) return;
+            if (pendingNotice == null) return;
+            Notice next = pendingNotice;
+            pendingNotice = null;
+            showNotice(next);
         });
     }
 
     /** Shows the announcement. It is deliberately not cancelable: the only way
-     *  past it is the button, and it appears again on the next launch. */
+     *  past it is the button, and it appears again on the next launch. It never
+     *  covers an update prompt or a running download; those go first. */
     private void showNotice(Notice n) {
         main.post(() -> {
             if (isDead()) return;
-            if (noticeDialog != null) {
-                // The cached copy is already on screen; swap in the fresh text.
-                TextView message = noticeDialog.findViewById(android.R.id.message);
-                if (message != null) message.setText(n.content);
-                noticeDialog.setTitle(n.title);
+            if (noticeDialog != null) return;
+            if (updateDialog != null) {
+                pendingNotice = n;
                 return;
             }
-            // Take over from an update dialog, remembering it for afterwards.
-            if (updateDialog != null) {
-                pendingUpdate = showingUpdate;
-                updateDialog.dismiss();
-            }
-            AlertDialog dialog = new AlertDialog.Builder(activity)
-                    .setTitle(n.title)
-                    .setMessage(n.content)
-                    .setPositiveButton(R.string.notice_ok, null)
-                    .setCancelable(false)
-                    .create();
+            View view = LayoutInflater.from(activity)
+                    .inflate(R.layout.dialog_notice, null);
+            ((TextView) view.findViewById(R.id.noticeTitle)).setText(n.title);
+            ((TextView) view.findViewById(R.id.noticeContent)).setText(n.content);
+
+            Dialog dialog = new Dialog(activity);
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            dialog.setContentView(view);
+            dialog.setCancelable(false);
             dialog.setCanceledOnTouchOutside(false);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                WindowManager.LayoutParams lp = window.getAttributes();
+                lp.dimAmount = 0.45f;
+                window.setAttributes(lp);
+            }
+            view.findViewById(R.id.noticeOk).setOnClickListener(v -> dialog.dismiss());
             dialog.setOnDismissListener(d -> {
-                noticeDialog = null;
-                Release next = pendingUpdate;
-                pendingUpdate = null;
-                if (next != null) showUpdateDialog(next);
+                if (noticeDialog == dialog) {
+                    noticeDialog = null;
+                    showingNotice = null;
+                }
+                pumpDialogs();
             });
             dialog.show();
+            if (window != null) sizeDialog(window);
             noticeDialog = dialog;
+            showingNotice = n;
+            clampScrollHeight(view.findViewById(R.id.noticeScroller));
         });
+    }
+
+    /** Keeps a long body inside the screen instead of letting the dialog grow
+     *  past the bottom edge; short ones stay wrap_content. */
+    private void clampScrollHeight(View scroller) {
+        if (!(scroller instanceof ScrollView)) return;
+        ScrollView scroll = (ScrollView) scroller;
+        scroll.post(() -> {
+            int max = Math.round(activity.getResources().getDisplayMetrics()
+                    .heightPixels * 0.42f);
+            if (scroll.getHeight() <= max) return;
+            ViewGroup.LayoutParams lp = scroll.getLayoutParams();
+            lp.height = max;
+            scroll.setLayoutParams(lp);
+        });
+    }
+
+    /** Shared window sizing for the custom dialogs: side margins on narrow
+     *  screens, a comfortable cap on tablets. */
+    private void sizeDialog(Window window) {
+        DisplayMetrics dm = activity.getResources().getDisplayMetrics();
+        int margin = Math.round(24 * dm.density);
+        int maxWidth = Math.round(420 * dm.density);
+        int width = Math.min(dm.widthPixels - margin * 2, maxWidth);
+        window.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT);
     }
 
     private void openPage(String pageUrl) {
@@ -436,7 +500,6 @@ final class UpdateChecker {
     }
 
     private void startDownload(Release r) {
-        showProgress();
         try {
             io.execute(() -> {
                 File dir = new File(activity.getCacheDir(), "updates");
@@ -465,13 +528,13 @@ final class UpdateChecker {
                 }
                 main.post(() -> {
                     if (isDead()) return;
-                    dismissProgress();
+                    if (updateDialog != null) updateDialog.dismiss();
                     launchInstaller(apk);
                 });
             });
         } catch (RejectedExecutionException e) {
             // cancel() ran between the dialog tap and the download start.
-            dismissProgress();
+            resetDownloadUi();
         }
     }
 
@@ -579,56 +642,38 @@ final class UpdateChecker {
         }
     }
 
-    private void showProgress() {
-        main.post(() -> {
-            if (isDead() || progressDialog != null) return;
-            float d = activity.getResources().getDisplayMetrics().density;
-            int pad = Math.round(20 * d);
-            LinearLayout box = new LinearLayout(activity);
-            box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(pad, pad, pad, pad);
-            progressBar = new ProgressBar(activity, null,
-                    android.R.attr.progressBarStyleHorizontal);
-            progressBar.setMax(100);
-            progressBar.setIndeterminate(true);
-            progressText = new TextView(activity);
-            progressText.setText(R.string.update_downloading);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = Math.round(8 * d);
-            box.addView(progressBar, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT));
-            box.addView(progressText, lp);
-            progressDialog = new AlertDialog.Builder(activity)
-                    .setTitle(R.string.update_available)
-                    .setView(box)
-                    .setCancelable(false)
-                    .show();
-        });
-    }
-
     private void setProgress(int pct) {
         main.post(() -> {
-            if (progressDialog == null || isDead()) return;
-            progressBar.setIndeterminate(false);
-            progressBar.setProgress(pct);
-            progressText.setText(activity.getString(R.string.update_downloading)
-                    + " " + pct + "%");
+            if (updateDialog == null || isDead()) return;
+            ProgressBar bar = updateDialog.findViewById(R.id.updateProgress);
+            TextView text = updateDialog.findViewById(R.id.updateProgressText);
+            if (bar != null) {
+                bar.setIndeterminate(false);
+                bar.setProgress(pct);
+            }
+            if (text != null) {
+                text.setText(activity.getString(R.string.update_downloading)
+                        + " " + pct + "%");
+            }
         });
     }
 
-    private void dismissProgress() {
-        if (progressDialog != null) {
-            progressDialog.dismiss();
-            progressDialog = null;
-        }
+    /** Puts the update dialog back into its normal state after a failed
+     *  download, so the user can retry or back out. */
+    private void resetDownloadUi() {
+        if (updateDialog == null) return;
+        updateDialog.setCancelable(true);
+        View buttons = updateDialog.findViewById(R.id.updateButtons);
+        View scroller = updateDialog.findViewById(R.id.updateScroller);
+        View box = updateDialog.findViewById(R.id.updateProgressBox);
+        if (buttons != null) buttons.setVisibility(View.VISIBLE);
+        if (scroller != null) scroller.setVisibility(View.VISIBLE);
+        if (box != null) box.setVisibility(View.GONE);
     }
 
     private void fail(int message) {
         main.post(() -> {
-            dismissProgress();
+            resetDownloadUi();
             if (!isDead()) Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
         });
     }
