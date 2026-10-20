@@ -130,11 +130,10 @@ jobs:
           files: DirtyFragX-*.apk
           body_path: RELEASE_NOTES.md
 
-      # A broken mirror must not turn the build red: the GitHub Release is the primary
-      # artifact and it is already published by the step above.
+      # Deliberately not continue-on-error: a green run with no APK on Gitee is worse than
+      # a red one, because nobody notices the mirror is broken.
       - name: Mirror release to Gitee
         if: startsWith(github.ref, 'refs/tags/')
-        continue-on-error: true
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
           GITEE_OWNER: blblwanfeng
@@ -145,6 +144,7 @@ jobs:
             exit 0
           fi
           API="https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}"
+          ASSET="DirtyFragX-${GITHUB_REF_NAME}.apk"
 
           # Bounded timeouts: an unreachable Gitee otherwise hangs the job for minutes,
           # and the HTTP status is printed so a 401 (bad/expired token) is visible.
@@ -154,27 +154,37 @@ jobs:
           }
 
           # Gitee mirrors the tag on its own (origin has two push URLs), so only the
-          # release and its attachment have to be created here. An existing release
-          # makes this POST return 400, which is fine.
-          gitee -X POST "${API}/releases?access_token=${GITEE_TOKEN}" \
+          # release and its attachment are created here. Take the id straight from the
+          # create response: listing the releases right after the POST can come back
+          # without the new entry, which is what made an earlier run skip the upload.
+          release_id=$(curl -sS --connect-timeout 15 --max-time 60 \
+            -X POST "${API}/releases?access_token=${GITEE_TOKEN}" \
             --data-urlencode "tag_name=${GITHUB_REF_NAME}" \
             --data-urlencode "name=${GITHUB_REF_NAME}" \
             --data-urlencode "target_commitish=master" \
-            --data-urlencode "body@RELEASE_NOTES.md" || true
+            --data-urlencode "body@RELEASE_NOTES.md" | jq -r '.id // empty')
 
-          # The attachment endpoint is keyed by the numeric release id. Passing the tag
-          # there hits the web 404 page, and curl --fail turns that into exit code 22.
-          release_id=$(curl -sS --connect-timeout 15 --max-time 60 --retry 2 \
-            "${API}/releases?access_token=${GITEE_TOKEN}&per_page=100" \
-            | jq -r --arg tag "$GITHUB_REF_NAME" '[.[] | select(.tag_name == $tag)][0].id')
+          # An existing release answers the POST with 400, so look the id up in that case.
+          if [ -z "$release_id" ]; then
+            release_id=$(curl -sS --connect-timeout 15 --max-time 60 --retry 2 \
+              "${API}/releases?access_token=${GITEE_TOKEN}&per_page=100" \
+              | jq -r --arg tag "$GITHUB_REF_NAME" '[.[] | select(.tag_name == $tag)][0].id // empty')
+          fi
           echo "Gitee release id for ${GITHUB_REF_NAME}: ${release_id}"
 
-          if [ -z "$release_id" ] || [ "$release_id" = "null" ]; then
-            echo "::warning::No Gitee release found for ${GITHUB_REF_NAME}; skipping the attachment upload."
+          if [ -z "$release_id" ]; then
+            echo "::error::No Gitee release found for ${GITHUB_REF_NAME}."
             exit 1
           fi
 
-          # access_token has to be a query parameter here: Gitee ignores it as a
-          # multipart form field and answers 401 on this endpoint.
+          # Re-running the job must not try to upload the same file twice.
+          if curl -sS --max-time 60 "${API}/releases/${release_id}?access_token=${GITEE_TOKEN}" \
+            | jq -e --arg f "$ASSET" '[.assets[].name] | index($f)' > /dev/null; then
+            echo "${ASSET} is already attached, nothing to do."
+            exit 0
+          fi
+
+          # The attachment endpoint is keyed by the numeric release id; the tag hits the
+          # web 404 page. access_token has to be a query parameter here as well.
           gitee -X POST "${API}/releases/${release_id}/attach_files?access_token=${GITEE_TOKEN}" \
-            -F "file=@DirtyFragX-${GITHUB_REF_NAME}.apk"
+            -F "file=@${ASSET}"
