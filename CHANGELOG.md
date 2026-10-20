@@ -9,6 +9,52 @@
   `rmmod oplus_*` chain behind issue #21, and it only writes the `dfm0`/`dfm1` markers our progress bar
   does not read.
 
+## 2.0.0
+
+The first release under the DirtyFragX name. The exploit engine is unchanged from 1.16 - everything
+below is the app around it.
+
+### App - new interface
+- The app is split into two pages behind a pager: `Home`, which carries the run flow, and
+  `Settings`, which collects the options that used to be spread across dialogs.
+- The exploit now runs on its own screen (`RunActivity`) instead of inside a modal dialog, so the
+  progress, the log and the device information stay readable while it runs.
+- `Home` is a draggable card stack: the SU manager prerequisite and the current status sit above
+  the run button, and the status pill follows `Waiting` / `Running` / `Rooted` / `Verification` /
+  `Verified` / `Failure` / `Reboot required`.
+- The log can be copied in one tap, and `Advanced logs` switches the run panel from the summary to
+  the full output.
+
+### App - settings
+- Light and dark themes, plus an accent tone that recolours buttons, icons and highlights.
+- Language switch between English and Simplified Chinese.
+- `Expert mode` hides autorun and auto soft reboot behind an explicit toggle.
+- KernelSU module enable/disable, soft reboot, and a copyable device info block (device, system,
+  kernel, arch, fingerprint).
+- `Tutorial` opens the walkthrough page; the about section links to this project and to the
+  original DirtyFrag repository.
+
+### App - updates and announcements
+- In-app update check: it reads the latest release, downloads the APK and hands it to the system
+  installer, and reports a failed download, a non-APK payload or a missing "install unknown apps"
+  permission separately.
+- Announcement dialog for one-off notices, with `Got it` and a shortcut to the tutorial.
+
+### App - identity
+- Renamed from DFRoot to DirtyFragX, with a new adaptive launcher icon (black foreground on white,
+  plus a monochrome layer for Android 13+ themed icons) and a console banner that reads
+  `DIRTYFRAGX`.
+- GPL-3.0 licence text added to the repository.
+
+### Build and release
+- The `Build` workflow now belongs to this project: eight `LKMs / <kmi>` jobs build the kernel
+  modules, `build-dfroot` assembles the APK, and a `v*` tag publishes `DirtyFragX-<tag>.apk` with
+  notes taken from this file.
+- Release builds are signed with `app/keystore.jks`, restored from the `KEYSTORE` secret in CI, so
+  every APK from this fork shares one signing identity. Pull-request builds fall back to the debug
+  key instead of failing.
+- The APK is always written as `dirtyfragx.apk`, and the GitHub release is mirrored to Gitee.
+
 ## 1.16
 
 Based on upstream DFRoot 4.5 (upstream 4.2 - 4.5 merged into this fork).
