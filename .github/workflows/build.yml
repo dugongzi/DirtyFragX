@@ -146,13 +146,6 @@ jobs:
           API="https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}"
           ASSET="DirtyFragX-${GITHUB_REF_NAME}.apk"
 
-          # Bounded timeouts: an unreachable Gitee otherwise hangs the job for minutes,
-          # and the HTTP status is printed so a 401 (bad/expired token) is visible.
-          gitee() {
-            curl -sS --connect-timeout 15 --max-time 120 --retry 2 --retry-delay 5 \
-              -w '\nHTTP %{http_code}\n' "$@"
-          }
-
           # Gitee mirrors the tag on its own (origin has two push URLs), so only the
           # release and its attachment are created here. Take the id straight from the
           # create response: listing the releases right after the POST can come back
@@ -186,5 +179,40 @@ jobs:
 
           # The attachment endpoint is keyed by the numeric release id; the tag hits the
           # web 404 page. access_token has to be a query parameter here as well.
-          gitee -X POST "${API}/releases/${release_id}/attach_files?access_token=${GITEE_TOKEN}" \
-            -F "file=@${ASSET}"
+          #
+          # -H "Expect:" drops the 100-continue handshake. Gitee does not reliably answer
+          # it from a CI network, and the stall showed up as "HTTP 100" followed by a
+          # 120s timeout with zero bytes received. The body is ~6 MB, so the upload gets
+          # a long timeout, and every failed attempt re-checks the asset list because a
+          # timed-out upload may still have landed server-side.
+          uploaded=0
+          for attempt in 1 2 3; do
+            echo "Uploading ${ASSET} (attempt ${attempt})..."
+            code=$(curl -sS --http1.1 -H "Expect:" \
+              --connect-timeout 30 --max-time 600 \
+              -o gitee-upload.json -w '%{http_code}' \
+              -X POST "${API}/releases/${release_id}/attach_files?access_token=${GITEE_TOKEN}" \
+              -F "file=@${ASSET}") || code=000
+            echo "HTTP ${code}"
+
+            if [ "$code" = "201" ] || [ "$code" = "200" ]; then
+              uploaded=1
+              break
+            fi
+
+            if curl -sS --connect-timeout 15 --max-time 60 \
+              "${API}/releases/${release_id}?access_token=${GITEE_TOKEN}" \
+              | jq -e --arg f "$ASSET" '[.assets[].name] | index($f)' > /dev/null; then
+              echo "${ASSET} is attached despite HTTP ${code}."
+              uploaded=1
+              break
+            fi
+
+            sleep 15
+          done
+
+          if [ "$uploaded" != "1" ]; then
+            echo "::error::Could not attach ${ASSET} to Gitee release ${release_id}."
+            cat gitee-upload.json 2>/dev/null || true
+            exit 1
+          fi
