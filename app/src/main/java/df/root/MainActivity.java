@@ -440,6 +440,13 @@ public class MainActivity extends AppCompatActivity {
             if (link != null) link.setOnClickListener(v ->
                     openUrl(getString(R.string.repo_fork_url)));
         }
+        View[] community = {
+                settings(R.id.rowCommunity), settings(R.id.communityLabel),
+                settings(R.id.communityDesc)};
+        for (View link : community) {
+            if (link != null) link.setOnClickListener(v ->
+                    openUrl(getString(R.string.community_url)));
+        }
 
         TextView updateVersion = settings(R.id.updateCheckVersion);
         if (updateVersion != null) {

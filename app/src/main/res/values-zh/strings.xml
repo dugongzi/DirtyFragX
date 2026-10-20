@@ -92,6 +92,9 @@
     <string name="device">设备</string>
     <string name="remove_ksu">移除 KSU/KSUD</string>
     <string name="about">关于</string>
+    <string name="community">使用教程</string>
+    <string name="community_desc">点击查看</string>
+    <string name="community_url">https://www.yuque.com/ababa-haoqq/ykpku4/opnfcgpodggmdn8w?singleDoc#</string>
     <string name="repo_original">原项目仓库</string>
     <string name="repo_original_url">https://github.com/mitschud/DirtyFrag.git</string>
     <string name="repo_fork">本项目仓库</string>

@@ -450,6 +450,14 @@ final class UpdateChecker {
                 window.setAttributes(lp);
             }
             view.findViewById(R.id.noticeOk).setOnClickListener(v -> dialog.dismiss());
+            view.findViewById(R.id.noticeCommunity).setOnClickListener(v -> {
+                try {
+                    activity.startActivity(new Intent(Intent.ACTION_VIEW,
+                            Uri.parse(activity.getString(R.string.community_url))));
+                } catch (Exception ignored) {
+                    // No browser installed; keep the dialog open.
+                }
+            });
             dialog.setOnDismissListener(d -> {
                 if (noticeDialog == dialog) {
                     noticeDialog = null;

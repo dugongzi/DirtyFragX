@@ -64,20 +64,46 @@
                 android:textSize="15sp" />
         </ScrollView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/noticeOk"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="22dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:text="@string/notice_ok"
-            android:textAllCaps="false"
-            android:textColor="?attr/accentOn"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            app:backgroundTint="?attr/accentFill"
-            app:cornerRadius="14dp"
-            app:elevation="0dp" />
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/noticeCommunity"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/community"
+                android:textAllCaps="false"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="15sp"
+                app:backgroundTint="?attr/colorSurface"
+                app:cornerRadius="14dp"
+                app:elevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/noticeOk"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1.4"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/notice_ok"
+                android:textAllCaps="false"
+                android:textColor="?attr/accentOn"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:backgroundTint="?attr/accentFill"
+                app:cornerRadius="14dp"
+                app:elevation="0dp" />
+
+        </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

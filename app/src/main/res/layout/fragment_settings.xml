@@ -519,6 +519,52 @@
                         android:layout_marginBottom="0dp" />
 
                     <LinearLayout
+                        android:id="@+id/rowCommunity"
+                        style="@style/SettingsRow"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingStart="0dp"
+                        android:paddingEnd="0dp">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_community" />
+
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                android:id="@+id/communityLabel"
+                                style="@style/RowTitle"
+                                android:text="@string/community" />
+
+                            <TextView
+                                android:id="@+id/communityDesc"
+                                style="@style/RowSubtitle"
+                                android:text="@string/community_desc" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="›"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="20sp" />
+
+                    </LinearLayout>
+
+                    <View
+                        style="@style/SectionDivider"
+                        android:layout_marginStart="48dp"
+                        android:layout_marginTop="0dp"
+                        android:layout_marginBottom="0dp" />
+
+                    <LinearLayout
                         android:id="@+id/rowFork"
                         style="@style/SettingsRow"
                         android:background="?attr/selectableItemBackground"

@@ -99,6 +99,9 @@
     <string name="not_activated">Not activated</string>
     <string name="system_info">System Information</string>
     <string name="about">About</string>
+    <string name="community">Tutorial</string>
+    <string name="community_desc">Tap to view</string>
+    <string name="community_url">https://www.yuque.com/ababa-haoqq/ykpku4/opnfcgpodggmdn8w?singleDoc#</string>
     <string name="repo_original">Original project</string>
     <string name="repo_original_url">https://github.com/mitschud/DirtyFrag.git</string>
     <string name="repo_fork">This project</string>
