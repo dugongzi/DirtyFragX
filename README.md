@@ -37,7 +37,7 @@
 JAVA_HOME="<Android Studio jbr>" ./gradlew assembleRelease
 ```
 
-The APK is written to `app/build/outputs/apk/release/dirtyfrag.apk`.
+The APK is written to `app/build/outputs/apk/release/dirtyfragx.apk`.
 
 Release builds are signed with `app/keystore.jks`, which is gitignored (the signing config expects alias `dirtyfrag` and `dirtyfrag` for both passwords). Generate your own before building:
 

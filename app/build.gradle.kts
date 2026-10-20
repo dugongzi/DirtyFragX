@@ -29,7 +29,12 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("keystore")
+            // CI pull requests cannot read the signing secret, so only use the release
+            // key when the file is actually present and fall back to the default debug
+            // key otherwise.
+            if (file("keystore.jks").exists()) {
+                signingConfig = signingConfigs.getByName("keystore")
+            }
         }
         release {
             signingConfig = signingConfigs.getByName("keystore")
@@ -47,7 +52,7 @@ android {
 androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->
-            output.outputFileName.set("dirtyfrag.apk")
+            output.outputFileName.set("dirtyfragx.apk")
         }
     }
 }

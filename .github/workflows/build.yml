@@ -91,7 +91,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Build DFRoot APK
+      - name: Build DirtyFragX APK
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             ./gradlew :app:assembleDebug
@@ -102,18 +102,18 @@ jobs:
       - name: Stage release asset
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          # app/build.gradle.kts always writes app/build/outputs/apk/release/dirtyfrag.apk,
-          # so the versioned asset name comes from the tag (v1.11 -> DirtyFrag-v1.11.apk).
-          cp app/build/outputs/apk/release/dirtyfrag.apk "DirtyFrag-${GITHUB_REF_NAME}.apk"
-          ls -l DirtyFrag-*.apk
+          # app/build.gradle.kts always writes app/build/outputs/apk/release/dirtyfragx.apk,
+          # so the versioned asset name comes from the tag (v2.0.0 -> DirtyFragX-v2.0.0.apk).
+          cp app/build/outputs/apk/release/dirtyfragx.apk "DirtyFragX-${GITHUB_REF_NAME}.apk"
+          ls -l DirtyFragX-*.apk
 
-      - name: Upload DFRoot APK
+      - name: Upload DirtyFragX APK
         uses: actions/upload-artifact@v7
         with:
-          name: DFRoot
+          name: DirtyFragX
           path: |
-            app/build/outputs/apk/release/dirtyfrag.apk
-            app/build/outputs/apk/debug/dirtyfrag.apk
+            app/build/outputs/apk/release/dirtyfragx.apk
+            app/build/outputs/apk/debug/dirtyfragx.apk
 
       - name: Build release notes from CHANGELOG
         if: startsWith(github.ref, 'refs/tags/')
@@ -127,5 +127,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: DirtyFrag-*.apk
+          files: DirtyFragX-*.apk
           body_path: RELEASE_NOTES.md

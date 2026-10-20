@@ -40,7 +40,7 @@
 JAVA_HOME="<Android Studio jbr>" ./gradlew assembleRelease
 ```
 
-APK 输出到 `app/build/outputs/apk/release/dirtyfrag.apk`。
+APK 输出到 `app/build/outputs/apk/release/dirtyfragx.apk`。
 
 Release 构建使用 `app/keystore.jks` 签名，该文件已被 gitignore（签名配置要求别名为 `dirtyfrag`，两个密码也都是 `dirtyfrag`）。构建前请自行生成：
 
