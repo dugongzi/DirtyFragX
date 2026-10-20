@@ -129,3 +129,30 @@ jobs:
         with:
           files: DirtyFragX-*.apk
           body_path: RELEASE_NOTES.md
+
+      - name: Mirror release to Gitee
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_OWNER: blblwanfeng
+          GITEE_REPO: DirtyFragX
+        run: |
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "::warning::GITEE_TOKEN is not configured, skipping the Gitee release mirror."
+            exit 0
+          fi
+          API="https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}"
+
+          # Gitee mirrors the tag on its own (origin has two push URLs), so only the
+          # release and its attachment have to be created here. An existing release
+          # makes this POST return 400, which is fine.
+          curl -sS -X POST "${API}/releases" \
+            -d "access_token=${GITEE_TOKEN}" \
+            -d "tag_name=${GITHUB_REF_NAME}" \
+            -d "name=${GITHUB_REF_NAME}" \
+            -d "target_commitish=master" \
+            --data-urlencode "body@RELEASE_NOTES.md" || true
+
+          curl -sS --fail -X POST "${API}/releases/${GITHUB_REF_NAME}/attach_files" \
+            -F "access_token=${GITEE_TOKEN}" \
+            -F "file=@DirtyFragX-${GITHUB_REF_NAME}.apk"
