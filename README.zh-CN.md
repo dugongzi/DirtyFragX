@@ -14,7 +14,7 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/mitschud/DirtyFrag/releases/latest) 安装 DirtyFragX APK。
+1. 从 [Releases](https://github.com/dugongzi/DirtyFragX/releases/latest).安装 DirtyFragX APK。
 
 2. 安装一个**自带 `libksud.so`** 的 SU 管理器：
 
