@@ -14,7 +14,7 @@
 
 ## Install
 
-1. Install the DirtyFragX APK from [Releases](https://github.com/mitschud/DirtyFrag/releases/latest).
+1. Install the DirtyFragX APK from [Releases](https://github.com/dugongzi/DirtyFragX/releases/latest).
 
 2. Install an SU manager that **ships `libksud.so`**:
 
