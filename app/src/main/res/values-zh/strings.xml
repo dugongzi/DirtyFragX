@@ -71,7 +71,12 @@
     <string name="tone_desc">应用于按钮、图标与高亮元素的强调色</string>
     <string name="language_desc">切换应用的显示语言</string>
     <string name="language_chinese">简体中文</string>
+    <string name="language_chinese_traditional">繁體中文</string>
     <string name="language_english">English</string>
+    <string name="font">字体</string>
+    <string name="font_desc">应用正文字体</string>
+    <string name="font_system">系统</string>
+    <string name="font_fangyuan">方圆体</string>
     <string name="run_exploit">开始运行</string>
     <string name="get_root">获取 root</string>
     <string name="running">运行中</string>

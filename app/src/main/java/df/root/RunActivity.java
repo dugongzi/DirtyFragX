@@ -60,7 +60,7 @@ public class RunActivity extends AppCompatActivity implements IReporter {
     protected void attachBaseContext(Context newBase) {
         SharedPreferences prefs = newBase.createDeviceProtectedStorageContext()
                 .getSharedPreferences("dfroot", MODE_PRIVATE);
-        java.util.Locale locale = new java.util.Locale(prefs.getString("language", "zh"));
+        java.util.Locale locale = MainActivity.localeFor(prefs.getString("language", "zh-TW"));
         java.util.Locale.setDefault(locale);
         android.content.res.Configuration config = new android.content.res.Configuration(
                 newBase.getResources().getConfiguration());
@@ -73,6 +73,7 @@ public class RunActivity extends AppCompatActivity implements IReporter {
         applyTheme();
         super.onCreate(savedInstanceState);
         applyAccentTone();
+        applyUiFont();
         mDeCtx = createDeviceProtectedStorageContext();
         setContentView(R.layout.activity_run);
         logView = findViewById(R.id.logView);
@@ -116,6 +117,15 @@ public class RunActivity extends AppCompatActivity implements IReporter {
             default: overlay = R.style.ThemeOverlay_DirtyFrag_Tone_Teal; break;
         }
         getTheme().applyStyle(overlay, true);
+    }
+
+    private void applyUiFont() {
+        String font = createDeviceProtectedStorageContext()
+                .getSharedPreferences("dfroot", MODE_PRIVATE)
+                .getString("ui_font", "system");
+        if ("fangyuan".equals(font)) {
+            getTheme().applyStyle(R.style.ThemeOverlay_DirtyFrag_Font_FangYuan, true);
+        }
     }
 
     /** Shows the log from the previous run, unless it belongs to an older boot. */

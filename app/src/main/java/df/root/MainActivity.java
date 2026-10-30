@@ -115,11 +115,18 @@ public class MainActivity extends AppCompatActivity {
      * width in dp and stop agreeing with each other as soon as it moves. See
      * {@link ScaleFix} for why the anchor is a width and not a dpi value.
      */
+    static java.util.Locale localeFor(String lang) {
+        if ("en".equals(lang)) return java.util.Locale.ENGLISH;
+        if ("zh-TW".equals(lang) || "zh_TW".equals(lang) || "zh-Hant".equals(lang))
+            return java.util.Locale.TRADITIONAL_CHINESE;
+        return java.util.Locale.SIMPLIFIED_CHINESE;
+    }
+
     @Override
     protected void attachBaseContext(Context newBase) {
         SharedPreferences prefs = newBase.createDeviceProtectedStorageContext()
                 .getSharedPreferences("dfroot", MODE_PRIVATE);
-        java.util.Locale locale = new java.util.Locale(prefs.getString("language", "zh"));
+        java.util.Locale locale = localeFor(prefs.getString("language", "zh-TW"));
         java.util.Locale.setDefault(locale);
         android.content.res.Configuration config = new android.content.res.Configuration(
                 newBase.getResources().getConfiguration());
@@ -132,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
         applyThemeAndLanguage();
         super.onCreate(savedInstanceState);
         applyAccentTone();
+        applyUiFont();
         mDeCtx = createDeviceProtectedStorageContext();
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -547,7 +555,7 @@ public class MainActivity extends AppCompatActivity {
         for (ApplicationInfo ai : pm.getInstalledApplications(0)) {
             if (ai.packageName.equals(getPackageName())) continue;
             if (ai.nativeLibraryDir == null) continue;
-            if (!new File(ai.nativeLibraryDir, "libksud.so").exists()) continue;
+            if (!ExploitRunner.hasKsud(ai)) continue;
             out.add(new SuManagerEntry(ai.packageName, pm.getApplicationLabel(ai),
                     pm.getApplicationIcon(ai)));
         }
@@ -558,6 +566,7 @@ public class MainActivity extends AppCompatActivity {
     /** Well-known SU manager packages. Only used to preselect a default, never
      *  to filter the picker list. */
     private static final String[] KNOWN_MANAGERS = {
+            "com.sukisu.ultra",
             "me.weishu.kernelsu",
             "com.rifsxd.ksunext",
             "com.rifsxd.kernelsu",
@@ -1008,6 +1017,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** Opt-in Fang Yuan face; default theme already uses system sans-serif. */
+    private void applyUiFont() {
+        String font = createDeviceProtectedStorageContext()
+                .getSharedPreferences("dfroot", MODE_PRIVATE)
+                .getString("ui_font", "system");
+        if ("fangyuan".equals(font)) {
+            getTheme().applyStyle(R.style.ThemeOverlay_DirtyFrag_Font_FangYuan, true);
+        }
+    }
+
     private static int toneButton(String tone) {
         switch (tone) {
             case "blue": return R.id.toneBlue;
@@ -1041,8 +1060,11 @@ public class MainActivity extends AppCompatActivity {
         if (theme == null || language == null) return;
         theme.check(prefs.getBoolean("dark_mode", false)
                 ? R.id.themeDark : R.id.themeLight);
-        language.check("en".equals(prefs.getString("language", "zh"))
-                ? R.id.languageEn : R.id.languageZh);
+        String langPref = prefs.getString("language", "zh-TW");
+        if ("en".equals(langPref)) language.check(R.id.languageEn);
+        else if ("zh-TW".equals(langPref) || "zh_TW".equals(langPref) || "zh-Hant".equals(langPref))
+            language.check(R.id.languageZhTw);
+        else language.check(R.id.languageZh);
         theme.addOnButtonCheckedListener((group, id, checked) -> {
             if (!checked || running) return;
             boolean dark = id == R.id.themeDark;
@@ -1052,18 +1074,32 @@ public class MainActivity extends AppCompatActivity {
         });
         language.addOnButtonCheckedListener((group, id, checked) -> {
             if (!checked || running) return;
-            String lang = id == R.id.languageEn ? "en" : "zh";
-            if (lang.equals(prefs.getString("language", "zh"))) return;
+            String lang = id == R.id.languageEn ? "en"
+                    : (id == R.id.languageZhTw ? "zh-TW" : "zh");
+            if (lang.equals(prefs.getString("language", "zh-TW"))) return;
             prefs.edit().putString("language", lang).apply();
             recreate();
         });
-        if (tone == null) return;
-        tone.check(toneButton(prefs.getString("accent_tone", "teal")));
-        tone.addOnButtonCheckedListener((group, id, checked) -> {
+        if (tone != null) {
+            tone.check(toneButton(prefs.getString("accent_tone", "teal")));
+            tone.addOnButtonCheckedListener((group, id, checked) -> {
+                if (!checked || running) return;
+                String value = toneValue(id);
+                if (value.equals(prefs.getString("accent_tone", "teal"))) return;
+                prefs.edit().putString("accent_tone", value).apply();
+                recreate();
+            });
+        }
+        com.google.android.material.button.MaterialButtonToggleGroup font =
+                settings(R.id.fontSelector);
+        if (font == null) return;
+        font.check("fangyuan".equals(prefs.getString("ui_font", "system"))
+                ? R.id.fontFangYuan : R.id.fontSystem);
+        font.addOnButtonCheckedListener((group, id, checked) -> {
             if (!checked || running) return;
-            String value = toneValue(id);
-            if (value.equals(prefs.getString("accent_tone", "teal"))) return;
-            prefs.edit().putString("accent_tone", value).apply();
+            String value = id == R.id.fontFangYuan ? "fangyuan" : "system";
+            if (value.equals(prefs.getString("ui_font", "system"))) return;
+            prefs.edit().putString("ui_font", value).apply();
             recreate();
         });
     }
@@ -1072,7 +1108,8 @@ public class MainActivity extends AppCompatActivity {
         int[] ids = {R.id.themeSelector, R.id.themeLight, R.id.themeDark,
                 R.id.toneSelector, R.id.toneTeal, R.id.toneBlue,
                 R.id.tonePurple, R.id.toneAmber,
-                R.id.languageSelector, R.id.languageZh, R.id.languageEn};
+                R.id.fontSelector, R.id.fontSystem, R.id.fontFangYuan,
+                R.id.languageSelector, R.id.languageZh, R.id.languageZhTw, R.id.languageEn};
         for (int id : ids) {
             View v = settings(id);
             if (v != null) v.setEnabled(enabled);
