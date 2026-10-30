@@ -567,6 +567,7 @@ public class MainActivity extends AppCompatActivity {
      *  to filter the picker list. */
     private static final String[] KNOWN_MANAGERS = {
             "com.sukisu.ultra",
+            "com.resukisu.resukisu",
             "me.weishu.kernelsu",
             "com.rifsxd.ksunext",
             "com.rifsxd.kernelsu",
