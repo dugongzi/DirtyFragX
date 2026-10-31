@@ -394,6 +394,57 @@
                         style="@style/SectionDivider"
                         android:layout_marginStart="48dp" />
 
+
+                    <!-- Font -->
+                    <LinearLayout style="@style/SettingsRow">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="@drawable/bg_settings_icon"
+                            android:contentDescription="@null"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_font" />
+
+                        <LinearLayout
+                            style="@style/RowText"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                style="@style/RowTitle"
+                                android:text="@string/font" />
+
+                            <TextView
+                                style="@style/RowSubtitle"
+                                android:text="@string/font_desc" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/fontSelector"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/fontSystem"
+                            style="@style/SettingsSegmentButton"
+                            android:text="@string/font_system" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/fontFangYuan"
+                            style="@style/SettingsSegmentButton"
+                            android:text="@string/font_fangyuan" />
+
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <View
+                        style="@style/SectionDivider"
+                        android:layout_marginStart="48dp" />
+
                     <!-- Language -->
                     <LinearLayout style="@style/SettingsRow">
 
@@ -432,6 +483,11 @@
                             android:id="@+id/languageZh"
                             style="@style/SettingsSegmentButton"
                             android:text="@string/language_chinese" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/languageZhTw"
+                            style="@style/SettingsSegmentButton"
+                            android:text="@string/language_chinese_traditional" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/languageEn"

@@ -1,7 +1,7 @@
 <resources>
     <style name="Theme.DirtyFrag" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
-        <item name="fontFamily">@font/alimama_fang_yuan</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="android:windowBackground">@color/app_bg</item>
         <item name="android:statusBarColor">@color/app_bg</item>
         <item name="android:navigationBarColor">@color/app_bg</item>
@@ -65,8 +65,6 @@
         <item name="android:gravity">center</item>
     </style>
     <style name="ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
-        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
-        <item name="fontFamily">@font/alimama_fang_yuan</item>
         <item name="android:textFontWeight">700</item>
         <item name="android:textSize">24sp</item>
         <item name="android:textStyle">bold</item>

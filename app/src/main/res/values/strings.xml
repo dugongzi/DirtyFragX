@@ -71,7 +71,12 @@
     <string name="tone_desc">Color used for buttons, icons and highlights</string>
     <string name="language_desc">Switch the app display language</string>
     <string name="language_chinese">简体中文</string>
+    <string name="language_chinese_traditional">繁體中文</string>
     <string name="language_english">English</string>
+    <string name="font">Font</string>
+    <string name="font_desc">App typeface</string>
+    <string name="font_system">System</string>
+    <string name="font_fangyuan">Fang Yuan</string>
     <string name="run_exploit">Run exploit</string>
     <string name="get_root">Get root</string>
     <string name="running">Running</string>

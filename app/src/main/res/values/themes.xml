@@ -1,7 +1,7 @@
 <resources>
     <style name="Theme.DirtyFrag" parent="Theme.Material3.Light.NoActionBar">
-        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
-        <item name="fontFamily">@font/alimama_fang_yuan</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         
         <!-- Window colors -->
         <item name="android:windowBackground">@color/app_bg</item>
@@ -108,12 +108,16 @@
     </style>
     
     <style name="ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
-        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
-        <item name="fontFamily">@font/alimama_fang_yuan</item>
         <item name="android:textFontWeight">700</item>
         <item name="android:textSize">24sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <!-- Font overlays. Default theme uses system sans-serif; Fang Yuan is opt-in. -->
+    <style name="ThemeOverlay.DirtyFrag.Font.FangYuan" parent="">
+        <item name="android:fontFamily">@font/alimama_fang_yuan</item>
+        <item name="fontFamily">@font/alimama_fang_yuan</item>
     </style>
 
     <!-- Accent tone overlays. Applied in onCreate before setContentView. -->
